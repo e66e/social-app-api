@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: social-app-api
+  mvc:
+    apiversion:
+      supported:
+        - 1.0.0
+      default: 1.0.0
+      use:
+        header: X-Version
+
+  docker:
+    compose:
+      file: './docker/compose.yaml'
+      arguments:
+        - '--project-name=${spring.application.name}'
+      lifecycle-management: start_only
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: 'http://localhost:8090/realms/social-app'
+          audiences:
+            - social-app-api
+
+  datasource:
+    url: 'jdbc:postgresql://localhost:5432/social_app_db'
+    username: 'admin' # confidential
+    password: 'secret' # confidential
+  flyway:
+    validate-on-migrate: true
+    baseline-on-migrate: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    open-in-view: false
+  sql:
+    init:
+      mode: never
+  modulith:
+    events:
+      republish-outstanding-events-on-restart: true
+
+server:
+  servlet:
+    context-path: '/api'
