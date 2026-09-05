@@ -31,11 +31,17 @@ dependencies {
 	implementation 'org.flywaydb:flyway-database-postgresql'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.mapstruct:mapstruct:1.6.3'
+
 	compileOnly 'org.projectlombok:lombok'
+
 	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
+
 	runtimeOnly 'org.postgresql:postgresql'
+
 	annotationProcessor 'org.projectlombok:lombok'
 	annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
+
+	testImplementation 'org.mockito:mockito-core:5.+'
 	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
@@ -45,8 +51,11 @@ dependencies {
 	testImplementation 'org.testcontainers:testcontainers-postgresql'
 	testImplementation 'org.springframework.boot:spring-boot-starter-flyway-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
+
 	testCompileOnly 'org.projectlombok:lombok'
+
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
 	testAnnotationProcessor 'org.projectlombok:lombok'
 }
 

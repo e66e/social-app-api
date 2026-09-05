@@ -11,6 +11,6 @@ interface UserMapper {
     @Mapping(target = "isActive", source = "active")
     UserDTO userToUserDTO(User user);
 
-    @Mapping(target = "active", source = "isActive")
+    @Mapping(target = "isActive", source = "isActive")
     User userDTOToUser(UserDTO userDTO);
 }

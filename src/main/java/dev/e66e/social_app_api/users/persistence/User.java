@@ -2,8 +2,9 @@ package dev.e66e.social_app_api.users.persistence;
 
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.validation.constraints.NotBlank;
+import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.proxy.HibernateProxy;
 
 import java.util.Objects;
@@ -11,34 +12,40 @@ import java.util.UUID;
 
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "users")
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(updatable = false, nullable = false)
     private UUID id;
 
-    @Column(name = "email", nullable = false, unique = true)
-    private String email;
-
     @Column(name = "username", nullable = false, unique = true)
+    @NotBlank(message = "Username is mandatory")
     private String username;
 
     @Column(name = "public_username", nullable = false)
+    @NotBlank(message = "Public username is mandatory")
     private String publicUsername;
 
     @Column(name = "avatar_url")
+    @ColumnDefault("''")
     private String avatarUrl;
 
     @Column(name = "bio")
+    @ColumnDefault("''")
     private String bio;
 
     @Column(name = "is_active")
+    @ColumnDefault("true")
     private boolean isActive;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "role")
+    @ColumnDefault("'USER'")
     private UserRole role;
 
     @Override

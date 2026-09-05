@@ -1,4 +1,4 @@
-package dev.e66e.social_app_api.comments.persistence;
+package dev.e66e.social_app_api.posts;
 
 import dev.e66e.social_app_api.PostgresTestcontainersInitializer;
 import org.junit.jupiter.api.DisplayName;
@@ -14,32 +14,34 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-@ContextConfiguration(initializers = PostgresTestcontainersInitializer.class)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class CommentTest {
+@ContextConfiguration(initializers = PostgresTestcontainersInitializer.class)
+@DisplayName("PostEntity test.")
+class PostEntityTest {
 
     @Autowired
-    CommentRepository commentRepository;
+    PostRepository postRepository;
 
     @Test
     @Transactional
     @DisplayName("Testing Post entity mapping with database")
-    void testComment() {
-        Comment comment = new Comment();
-        UUID postUuid = UUID.randomUUID();
+    void postEntityTest() {
+        Post post = new Post();
+        UUID userUuid = UUID.randomUUID();
 
-        comment.setPostId(postUuid);
-        comment.setContent("Test content");
-        comment.setParentCommentId(null);
+        post.setUserId(userUuid);
+        post.setTextContent("Test content");
+        post.setImageUrl("https://testimage.com");
 
-        Comment dbComment = commentRepository.save(comment);
+        Post dbPost = postRepository.save(post);
 
-        assertNotNull(dbComment);
+        assertNotNull(dbPost);
+
         assertAll(() -> {
-            assertNotNull(dbComment.getId());
-           assertEquals(postUuid, dbComment.getPostId());
-           assertEquals("Test content", dbComment.getContent());
-           assertNull(dbComment.getParentCommentId());
+            assertNotNull(dbPost.getId());
+            assertEquals(userUuid, dbPost.getUserId());
+            assertEquals("Test content", dbPost.getTextContent());
+            assertEquals("https://testimage.com", dbPost.getImageUrl());
         });
     }
 }

@@ -14,7 +14,8 @@ import static org.junit.jupiter.api.Assertions.*;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ContextConfiguration(initializers = PostgresTestcontainersInitializer.class)
-public class UserTest {
+@DisplayName("UserEntity test")
+public class UserEntityTest {
 
     @Autowired
     UserRepository userRepository;
@@ -22,10 +23,9 @@ public class UserTest {
     @Test
     @Transactional
     @DisplayName("Testing User entity mapping with database")
-    void userSave() {
+    void userEntitySave() {
         User user = new User();
 
-        user.setEmail("testemail");
         user.setUsername("testusername");
         user.setPublicUsername("testpublicusername");
         user.setAvatarUrl("testavatarurl");
@@ -35,7 +35,6 @@ public class UserTest {
 
         assertAll(() -> {
             assertNotNull(dbUser.getId());
-            assertEquals("testemail", dbUser.getEmail());
             assertEquals("testusername", dbUser.getUsername());
             assertEquals("testpublicusername", dbUser.getPublicUsername());
             assertEquals("testavatarurl", dbUser.getAvatarUrl());
