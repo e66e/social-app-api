@@ -9,4 +9,7 @@ public record UserOnboardingDataDTO(
         @NotBlank @Size(min = 5) String publicUsername,
         @Nullable String avatarUrl
 ) {
+    public UserOnboardingDataDTO {
+        avatarUrl = avatarUrl == null ? "" : avatarUrl.trim();
+    }
 }

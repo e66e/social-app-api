@@ -20,6 +20,7 @@ import java.util.UUID;
 public class User {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(updatable = false, nullable = false)
     private UUID id;
 
@@ -35,7 +36,7 @@ public class User {
     @ColumnDefault("''")
     private String avatarUrl;
 
-    @Column(name = "bio")
+    @Column(name = "bio", length = 500)
     @ColumnDefault("''")
     private String bio;
 

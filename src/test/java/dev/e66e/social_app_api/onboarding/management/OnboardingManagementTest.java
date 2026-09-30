@@ -34,9 +34,6 @@ class OnboardingManagementTest {
     private UserOnboardingEvaluator userOnboardingEvaluator;
     @Mock
     private UserRegistration userRegistration;
-    @Mock
-    private OnboardingManagement self;
-
 
     @InjectMocks
     private OnboardingManagement onboardingManagement;
@@ -59,7 +56,6 @@ class OnboardingManagementTest {
             // Then
             assertTrue(result);
             verify(userOnboardingRepository, atMostOnce()).findById(any());
-            verify(self, never()).addUserOnboarding(any());
         }
 
         @Test
@@ -76,7 +72,6 @@ class OnboardingManagementTest {
             // Then
             assertFalse(result);
             verify(userOnboardingRepository, atMostOnce()).findById(any());
-            verify(self, never()).addUserOnboarding(any());
         }
 
         @Test
@@ -93,7 +88,6 @@ class OnboardingManagementTest {
             // Then
             assertFalse(result);
             verify(userOnboardingRepository, atMostOnce()).findById(any());
-            verify(self, atMostOnce()).addUserOnboarding(any());
         }
 
         @Test
@@ -106,7 +100,6 @@ class OnboardingManagementTest {
                     () -> onboardingManagement.isUserOnboarded(null));
 
             verify(userOnboardingRepository, never()).findById(any());
-            verify(self, never()).addUserOnboarding(any());
         }
     }
 
@@ -169,7 +162,6 @@ class OnboardingManagementTest {
                     Objects.requireNonNull(dto.avatarUrl())
             );
 
-            when(self.isUserOnboarded(id)).thenReturn(false);
             when(userOnboardingEvaluator.check(dto)).thenReturn(true);
             when(userOnboardingRepository.findById(id))
                     .thenReturn(Optional.of(foundById));
@@ -180,9 +172,8 @@ class OnboardingManagementTest {
 
             // Then
             assertEquals(userDTO, returnValue);
-            verify(self, times(1)).isUserOnboarded(any());
             verify(userOnboardingEvaluator, times(1)).check(dto);
-            verify(userOnboardingRepository, times(1)).findById(any());
+            verify(userOnboardingRepository, times(2)).findById(any());
             verify(userRegistration, times(1)).register(any());
         }
 
@@ -198,7 +189,6 @@ class OnboardingManagementTest {
                     "User id cannot be null."
             );
 
-            verify(self, never()).isUserOnboarded(any());
             verify(userOnboardingEvaluator, never()).check(any());
             verify(userOnboardingRepository, never()).findById(any());
             verify(userRegistration, never()).register(any());
@@ -216,14 +206,13 @@ class OnboardingManagementTest {
                     "User id cannot be null."
             );
 
-            verify(self, never()).isUserOnboarded(any());
             verify(userOnboardingEvaluator, never()).check(any());
             verify(userOnboardingRepository, never()).findById(any());
             verify(userRegistration, never()).register(any());
         }
 
         @Test
-        @DisplayName("When user onboarded the method should throw UserAlreadyOnboardedException.")
+        @DisplayName("When user onboarded method should throw UserAlreadyOnboardedException.")
         void userAlreadyOnboarded_shouldThrowUserAlreadyOnboardedException() {
             // Given
             UUID id = UUID.randomUUID();
@@ -232,7 +221,14 @@ class OnboardingManagementTest {
                     "publicUsername",
                     ""
             );
-            when(self.isUserOnboarded(id)).thenReturn(true);
+
+            when(userOnboardingRepository.findById(id))
+                    .thenReturn(Optional.of(
+                            new UserOnboardingData(id,
+                                    UserOnboardingStatus.COMPLETED)
+                    ));
+
+
 
             // When / Then
             assertThrows(UserAlreadyOnboardedException.class,
@@ -249,7 +245,6 @@ class OnboardingManagementTest {
                     "pusr",
                     ""
             );
-            when(self.isUserOnboarded(id)).thenReturn(false);
             when(userOnboardingEvaluator.check(dto)).thenReturn(false);
 
             // When / Then
@@ -259,7 +254,7 @@ class OnboardingManagementTest {
         @Test
         @DisplayName("""
             UserOnboardingDTO passed check, but id wasn't in database.
-            Should call addUserOnboardingMethod and register user.""")
+            Should call addUserOnboarding method and register user.""")
         void passedIdDidntExistedInDb_shouldAddUserOnboarding() {
             // Given
             UUID id = UUID.randomUUID();
@@ -283,27 +278,24 @@ class OnboardingManagementTest {
                     Objects.requireNonNull(dto.publicUsername()),
                     Objects.requireNonNull(dto.avatarUrl())
             );
-            UserOnboardingData createdOnboardingRecord = new UserOnboardingData(
-                    id, UserOnboardingStatus.PENDING);
 
-            when(self.isUserOnboarded(id)).thenReturn(false);
             when(userOnboardingEvaluator.check(dto)).thenReturn(true);
             when(userOnboardingRepository.findById(id))
                     .thenReturn(Optional.empty());
-            when(self.addUserOnboarding(id))
-                    .thenReturn(createdOnboardingRecord);
             when(userRegistration.register(registrationData))
                     .thenReturn(userDTO);
+            UserOnboardingData newUserOnboarding = new UserOnboardingData(id, UserOnboardingStatus.PENDING);
+            when(userOnboardingRepository.saveAndFlush(newUserOnboarding))
+                    .thenReturn(newUserOnboarding);
+
             // When
             UserDTO returnValue = onboardingManagement.userOnboarding(id, dto);
 
             // Then
             assertEquals(userDTO, returnValue);
-            verify(self, times(1)).isUserOnboarded(any());
-            verify(userOnboardingEvaluator, times(1)).check(dto);
-            verify(userOnboardingRepository, times(1)).findById(any());
-            verify(self, times(1)).addUserOnboarding(id);
-            verify(userRegistration, times(1)).register(any());
+            verify(userOnboardingEvaluator).check(dto);
+            verify(userOnboardingRepository, times(2)).findById(any());
+            verify(userRegistration).register(any());
         }
     }
 }

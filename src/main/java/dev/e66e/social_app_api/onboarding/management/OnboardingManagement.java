@@ -9,7 +9,6 @@ import dev.e66e.social_app_api.users.UserDTO;
 import dev.e66e.social_app_api.users.UserRegistration;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +24,6 @@ class OnboardingManagement
     private final UserOnboardingRepository userOnboardingRepository;
     private final UserOnboardingEvaluator userOnboardingEvaluator;
     private final UserRegistration userRegistration;
-    @Lazy private final OnboardingManagement self;
 
     @Override
     @Transactional
@@ -36,7 +34,7 @@ class OnboardingManagement
         Optional<UserOnboardingData> user = this.userOnboardingRepository.findById(id);
 
         if (user.isEmpty()) {
-            self.addUserOnboarding(id);
+            this.addUserOnboarding(id);
             return false;
         }
 
@@ -51,7 +49,7 @@ class OnboardingManagement
         UserOnboardingData newUserOnboarding = new UserOnboardingData();
         newUserOnboarding.setId(id);
         newUserOnboarding.setOnboardingStatus(UserOnboardingStatus.PENDING);
-        return this.userOnboardingRepository.save(newUserOnboarding);
+        return this.userOnboardingRepository.saveAndFlush(newUserOnboarding);
     }
 
     @Transactional
@@ -63,14 +61,14 @@ class OnboardingManagement
         if (userOnboardingDataDTO == null)
             throw new IllegalArgumentException("User onboarding data cannot be null.");
 
-        if (self.isUserOnboarded(id))
+        if (this.isUserOnboarded(id))
             throw new UserAlreadyOnboardedException("User already onboarded.");
 
         if (!this.userOnboardingEvaluator.check(userOnboardingDataDTO))
             throw new InvalidUserOnboardingData("Invalid user onboarding data.");
 
         UserOnboardingData userOnboardingData = this.userOnboardingRepository
-                .findById(id).or(() -> Optional.of(self.addUserOnboarding(id))).get();
+                .findById(id).or(() -> Optional.of(this.addUserOnboarding(id))).get();
 
         UserDTO userDTO = this.userRegistration.register(new RegistrationData(
                     id,

@@ -6,7 +6,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
-public class AppConfig {
+class AppConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, OnboardedAuthorizationManager onboardingManager) {

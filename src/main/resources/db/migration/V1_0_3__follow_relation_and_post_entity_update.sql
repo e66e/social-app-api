@@ -1,0 +1,47 @@
+CREATE SEQUENCE IF NOT EXISTS revinfo_seq START WITH 1 INCREMENT BY 50;
+
+CREATE TABLE follow_relationship
+(
+    follower_id      UUID NOT NULL,
+    follow_target_id UUID NOT NULL,
+    CONSTRAINT pk_followrelationship PRIMARY KEY (follower_id, follow_target_id)
+);
+
+ALTER TABLE posts
+    ADD created_at TIMESTAMP(6) WITHOUT TIME ZONE;
+
+ALTER TABLE posts
+    ADD updated_at TIMESTAMP(6) WITHOUT TIME ZONE;
+
+ALTER TABLE posts
+    ALTER COLUMN created_at SET NOT NULL;
+
+ALTER TABLE follow_relationship
+    ADD CONSTRAINT FK_FOLLOWRELATIONSHIP_ON_FOLLOWER FOREIGN KEY (follower_id) REFERENCES users (id);
+
+ALTER TABLE follow_relationship
+    ADD CONSTRAINT FK_FOLLOWRELATIONSHIP_ON_FOLLOW_TARGET FOREIGN KEY (follow_target_id) REFERENCES users (id);
+
+ALTER TABLE users
+    DROP COLUMN role;
+
+ALTER TABLE users
+    ALTER COLUMN avatar_url SET DEFAULT '';
+
+ALTER TABLE users
+    ALTER COLUMN bio TYPE VARCHAR(500) USING (bio::VARCHAR(500));
+
+ALTER TABLE users
+    ALTER COLUMN bio SET DEFAULT '';
+
+ALTER TABLE users
+    ALTER COLUMN is_active SET DEFAULT TRUE;
+
+ALTER TABLE comments
+    ALTER COLUMN parent_comment_id DROP NOT NULL;
+
+ALTER TABLE users
+    ADD role VARCHAR(255) DEFAULT 'USER';
+
+ALTER TABLE users
+    ALTER COLUMN role SET DEFAULT 'USER';

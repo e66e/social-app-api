@@ -1,19 +1,16 @@
 package dev.e66e.social_app_api.users.persistence;
 
-import dev.e66e.social_app_api.PostgresTestcontainersInitializer;
+import dev.e66e.social_app_api.PostgresTestcontainers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@ContextConfiguration(initializers = PostgresTestcontainersInitializer.class)
+@PostgresTestcontainers
 @DisplayName("UserEntity test")
 public class UserEntityTest {
 
@@ -31,7 +28,7 @@ public class UserEntityTest {
         user.setAvatarUrl("testavatarurl");
         user.setBio("testbio");
         user.setRole(UserRole.USER);
-        User dbUser = userRepository.save(user);
+        User dbUser = userRepository.saveAndFlush(user);
 
         assertAll(() -> {
             assertNotNull(dbUser.getId());

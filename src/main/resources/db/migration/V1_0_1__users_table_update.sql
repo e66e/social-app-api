@@ -4,8 +4,6 @@ ALTER TABLE users
 ALTER TABLE users
     ALTER COLUMN onboarding_status SET NOT NULL;
 
-DROP TABLE event_publication CASCADE;
-
 ALTER TABLE users
     DROP COLUMN role;
 

@@ -42,6 +42,7 @@ class UserOnboardingDataDTOTest {
     @Test
     @DisplayName("Null username passed to DTO.")
     void userOnboarding_nullUsernameValue_thenShouldHaveConstraintViolation() {
+        @SuppressWarnings("DataFlowIssue")
         UserOnboardingDataDTO dataDTO = new UserOnboardingDataDTO(
                 null,
                 "correctPublicUsername",
@@ -76,6 +77,7 @@ class UserOnboardingDataDTOTest {
     @Test
     @DisplayName("Null passed as public username field.")
     void userOnboarding_nullPublicUsernameValue_thenShouldHaveConstraintViolation() {
+        @SuppressWarnings("DataFlowIssue")
         UserOnboardingDataDTO dataDTO = new UserOnboardingDataDTO(
                 "correctUsername",
                 null,

@@ -3,9 +3,11 @@ package dev.e66e.social_app_api.posts;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.proxy.HibernateProxy;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -13,6 +15,7 @@ import java.util.UUID;
 @Setter
 @Entity
 @Table(name = "posts")
+@NoArgsConstructor
 class Post {
 
     @Id
@@ -27,8 +30,35 @@ class Post {
     private String textContent;
 
     @Column(name = "image_url")
+    @Nullable
     private String imageUrl;
 
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @Column(name = "updated_at")
+    @Nullable
+    private Instant updatedAt;
+
+    public Post(UUID userId, String textContent, @Nullable String imageUrl) {
+        this.userId = userId;
+        this.textContent = textContent;
+        this.imageUrl = imageUrl;
+    }
+
+    @SuppressWarnings("ConstantValue")
+    @PrePersist
+    void onCreate() {
+        if (this.createdAt == null)
+            this.createdAt = Instant.now();
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        updatedAt = Instant.now();
+    }
+
+    @SuppressWarnings("ConstantValue")
     @Override
     public final boolean equals(@Nullable Object o) {
         if (this == o) return true;

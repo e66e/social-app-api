@@ -23,7 +23,8 @@ public class PostgresTestcontainersInitializer
         TestPropertyValues.of(
                 "spring.datasource.url=" + postgres.getJdbcUrl(),
                 "spring.datasource.username=" + postgres.getUsername(),
-                "spring.datasource.password=" + postgres.getPassword()
+                "spring.datasource.password=" + postgres.getPassword(),
+                "spring.test.database.replace=none"
         ).applyTo(ctx.getEnvironment());
     }
 }

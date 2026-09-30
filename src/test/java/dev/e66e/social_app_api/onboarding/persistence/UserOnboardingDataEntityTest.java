@@ -1,20 +1,17 @@
 package dev.e66e.social_app_api.onboarding.persistence;
 
-import dev.e66e.social_app_api.PostgresTestcontainersInitializer;
+import dev.e66e.social_app_api.PostgresTestcontainers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
-import org.springframework.test.context.ContextConfiguration;
 
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @DataJpaTest
-@ContextConfiguration(initializers = PostgresTestcontainersInitializer.class)
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@PostgresTestcontainers
 @DisplayName("UserOnboardingDataEntity test.")
 class UserOnboardingDataEntityTest {
 

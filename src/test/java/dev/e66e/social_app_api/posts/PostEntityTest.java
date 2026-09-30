@@ -1,12 +1,10 @@
 package dev.e66e.social_app_api.posts;
 
-import dev.e66e.social_app_api.PostgresTestcontainersInitializer;
+import dev.e66e.social_app_api.PostgresTestcontainers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
@@ -14,8 +12,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@ContextConfiguration(initializers = PostgresTestcontainersInitializer.class)
+@PostgresTestcontainers
 @DisplayName("PostEntity test.")
 class PostEntityTest {
 
@@ -33,7 +30,7 @@ class PostEntityTest {
         post.setTextContent("Test content");
         post.setImageUrl("https://testimage.com");
 
-        Post dbPost = postRepository.save(post);
+        Post dbPost = postRepository.saveAndFlush(post);
 
         assertNotNull(dbPost);
 
@@ -42,6 +39,8 @@ class PostEntityTest {
             assertEquals(userUuid, dbPost.getUserId());
             assertEquals("Test content", dbPost.getTextContent());
             assertEquals("https://testimage.com", dbPost.getImageUrl());
+            assertNotNull(dbPost.getCreatedAt());
+            assertNull(dbPost.getUpdatedAt());
         });
     }
 }
