@@ -107,9 +107,9 @@ class PostIdempotencyManagementIT {
                 ""
         );
         final AtomicInteger counter = new AtomicInteger(0);
-        final Supplier<PostResponse> cb = () -> {
+        final Supplier<UUID> cb = () -> {
             counter.incrementAndGet();
-            return postResponse;
+            return postId;
         };
 
         @AfterEach
@@ -144,7 +144,7 @@ class PostIdempotencyManagementIT {
         @Test
         void whenRaceWon_andThereWasProblemWithPersistingPost_thenRemoveIdempotencyRecordAndThrowException() {
             // Given
-            Supplier<PostResponse> cb = () -> {
+            Supplier<UUID> cb = () -> {
                 throw new RuntimeException("Simulating database error");
             };
 

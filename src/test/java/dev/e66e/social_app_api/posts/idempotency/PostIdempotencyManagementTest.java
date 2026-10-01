@@ -59,9 +59,9 @@ class PostIdempotencyManagementTest {
                             imageUrl);
 
             AtomicInteger counter = new AtomicInteger(0);
-            Supplier<PostResponse> cb = () -> {
+            Supplier<UUID> cb = () -> {
                 counter.incrementAndGet();
-                return response;
+                return postId;
             };
 
             PostCreationRequest pcr = new PostCreationRequest(authorId, idempotencyKey, requestHash);
@@ -86,7 +86,7 @@ class PostIdempotencyManagementTest {
         @Test
         void whenReservationLoses_andInProgress_Throws409() {
             // Given
-            Supplier<PostResponse> cb = () -> {
+            Supplier<UUID> cb = () -> {
                 throw new RuntimeException("Test shouldn't access callback in this scenario.");
             };
 
@@ -107,7 +107,7 @@ class PostIdempotencyManagementTest {
         @Test
         void whenReservationLoses_andCompleted_returnsCached() {
             // Given
-            Supplier<PostResponse> cb = () -> {
+            Supplier<UUID> cb = () -> {
                 throw new RuntimeException("Test shouldn't access callback in this scenario.");
             };
 

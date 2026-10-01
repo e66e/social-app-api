@@ -37,7 +37,7 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
         UUID createdPostId = this.postIdempotencyAPI.executeIdempotent(authorId, idempotencyKey, postHash, () -> {
             Post newPost = new Post(authorId, postRequest.content(), postRequest.imageUrl());
 
-            return this.postMapper.postToPostResponse(this.postRepository.save(newPost));
+            return this.postRepository.save(newPost).getId();
         });
 
         return this.getPost(createdPostId).orElseThrow(() ->

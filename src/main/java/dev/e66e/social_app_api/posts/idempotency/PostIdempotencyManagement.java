@@ -1,6 +1,5 @@
 package dev.e66e.social_app_api.posts.idempotency;
 
-import dev.e66e.social_app_api.posts.PostResponse;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -25,14 +24,12 @@ class PostIdempotencyManagement implements PostIdempotencyAPI {
         this.self = self;
     }
 
-    // TODO maybe this should return Optional of PostResponse? this way we would break circular dependency
-    // and we wont need to use postAPI
     @Override
     @Transactional
     public UUID executeIdempotent(UUID authorId,
                                           String idempotencyKey,
                                           String requestHash,
-                                          Supplier<PostResponse> callback) {
+                                          Supplier<UUID> callback) {
 
         var pcqOpt = self.tryReserve(authorId, idempotencyKey, requestHash);
         if (pcqOpt.isEmpty()) {
@@ -47,15 +44,21 @@ class PostIdempotencyManagement implements PostIdempotencyAPI {
                 case PostCreationStatus.IN_PROGRESS -> throw new ResponseStatusException(HttpStatus.CONFLICT,
                         "Other thread handles request with given body and idempotency key.");
 
-                case PostCreationStatus.COMPLETED -> pcr.getPostId();
+                case PostCreationStatus.COMPLETED -> {
+                    if (!pcr.getRequestHash().equals(requestHash)) {
+                        throw new ResponseStatusException(HttpStatus.CONFLICT,
+                                "Idempotency key used for post with id: " + pcr.getPostId());
+                    }
+                    yield pcr.getPostId();
+                }
             };
         }
 
         PostCreationRequest pcr = pcqOpt.get();
 
         try {
-            PostResponse postResponse = callback.get();
-            pcr.markCompleted(postResponse.id());
+            UUID id = callback.get();
+            pcr.markCompleted(id);
             this.postCreationRequestRepository.saveAndFlush(pcr);
 
             return pcr.getPostId();
@@ -65,7 +68,7 @@ class PostIdempotencyManagement implements PostIdempotencyAPI {
         }
     }
 
-    @Transactional
+//    @Transactional
     public Optional<PostCreationRequest> tryReserve(UUID authorId, String key, String hash) {
         try {
             var reserved = self.reserve(authorId, key, hash);

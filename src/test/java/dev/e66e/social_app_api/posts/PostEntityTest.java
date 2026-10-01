@@ -26,7 +26,7 @@ class PostEntityTest {
         Post post = new Post();
         UUID userUuid = UUID.randomUUID();
 
-        post.setUserId(userUuid);
+        post.setAuthorId(userUuid);
         post.setTextContent("Test content");
         post.setImageUrl("https://testimage.com");
 
@@ -36,7 +36,7 @@ class PostEntityTest {
 
         assertAll(() -> {
             assertNotNull(dbPost.getId());
-            assertEquals(userUuid, dbPost.getUserId());
+            assertEquals(userUuid, dbPost.getAuthorId());
             assertEquals("Test content", dbPost.getTextContent());
             assertEquals("https://testimage.com", dbPost.getImageUrl());
             assertNotNull(dbPost.getCreatedAt());

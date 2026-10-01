@@ -12,6 +12,7 @@ class AppConfig {
     public SecurityFilterChain filterChain(HttpSecurity http, OnboardedAuthorizationManager onboardingManager) {
         http
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/posts/**").permitAll()
                         .requestMatchers("/api/**").access(onboardingManager));
 
         return http.build();
