@@ -2,7 +2,7 @@ package dev.e66e.social_app_api.posts.idempotency;
 
 import dev.e66e.social_app_api.PostgresTestcontainers;
 import dev.e66e.social_app_api.posts.PostInternalAPI;
-import dev.e66e.social_app_api.posts.PostResponse;
+import dev.e66e.social_app_api.posts.PostRecord;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -97,8 +97,8 @@ class PostIdempotencyManagementIT {
         final String idempotencyKey = "idempotencyKeyidempotencyKeyidempotencyKey";
         final Instant now = Instant.now();
         final String content = "lorem ipsum";
-        final PostResponse postResponse
-                = new PostResponse(
+        final PostRecord postRecord
+                = new PostRecord(
                 postId,
                 authorId,
                 now,
@@ -165,15 +165,15 @@ class PostIdempotencyManagementIT {
             entity.setStatus(PostCreationStatus.COMPLETED);
             repo.saveAndFlush(entity);
 
-            when(postAPI.getPost(postId))
-                    .thenReturn(Optional.of(postResponse));
+            when(postAPI.getPostRecord(postId))
+                    .thenReturn(Optional.of(postRecord));
 
             // When
             UUID out = postIdempotencyManagement
                     .executeIdempotent(authorId, idempotencyKey, requestHash, cb);
 
             // Then
-            assertEquals(postResponse.id(), out);
+            assertEquals(postRecord.id(), out);
 
             assertEquals(0, counter.get());
         }

@@ -1,6 +1,6 @@
 package dev.e66e.social_app_api.posts.idempotency;
 
-import dev.e66e.social_app_api.posts.PostResponse;
+import dev.e66e.social_app_api.posts.PostRecord;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -49,8 +49,8 @@ class PostIdempotencyManagementTest {
         void whenReservationWins_runsCallbackAndMarksCompleted() {
             // Given
 
-            PostResponse response
-                    = new PostResponse(
+            PostRecord response
+                    = new PostRecord(
                             postId,
                             authorId,
                             now,
@@ -115,8 +115,8 @@ class PostIdempotencyManagementTest {
             pcr.setPostId(postId);
             pcr.setStatus(PostCreationStatus.COMPLETED);
 
-            PostResponse response
-                    = new PostResponse(
+            PostRecord response
+                    = new PostRecord(
                         postId,
                         authorId,
                         now,

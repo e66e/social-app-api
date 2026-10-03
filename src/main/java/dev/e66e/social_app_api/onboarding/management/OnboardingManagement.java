@@ -5,7 +5,7 @@ import dev.e66e.social_app_api.onboarding.persistence.UserOnboardingData;
 import dev.e66e.social_app_api.onboarding.persistence.UserOnboardingRepository;
 import dev.e66e.social_app_api.onboarding.persistence.UserOnboardingStatus;
 import dev.e66e.social_app_api.users.RegistrationData;
-import dev.e66e.social_app_api.users.UserDTO;
+import dev.e66e.social_app_api.users.UserRecord;
 import dev.e66e.social_app_api.users.UserRegistration;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
@@ -53,8 +53,8 @@ class OnboardingManagement
     }
 
     @Transactional
-    public UserDTO userOnboarding(@Nullable UUID id,
-                                  @Nullable UserOnboardingDataDTO userOnboardingDataDTO) {
+    public UserRecord userOnboarding(@Nullable UUID id,
+                                     @Nullable UserOnboardingDataDTO userOnboardingDataDTO) {
         if (id == null)
             throw new IllegalArgumentException("User id cannot be null.");
 
@@ -70,7 +70,7 @@ class OnboardingManagement
         UserOnboardingData userOnboardingData = this.userOnboardingRepository
                 .findById(id).or(() -> Optional.of(this.addUserOnboarding(id))).get();
 
-        UserDTO userDTO = this.userRegistration.register(new RegistrationData(
+        UserRecord userRecord = this.userRegistration.register(new RegistrationData(
                     id,
                     Objects.requireNonNull(userOnboardingDataDTO.username()),
                     Objects.requireNonNull(userOnboardingDataDTO.publicUsername()),
@@ -79,6 +79,6 @@ class OnboardingManagement
         );
         userOnboardingData.setOnboardingStatus(UserOnboardingStatus.COMPLETED);
 
-        return userDTO;
+        return userRecord;
     }
 }

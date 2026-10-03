@@ -9,8 +9,8 @@ import org.mapstruct.MappingConstants;
 interface UserMapper {
 
     @Mapping(target = "isActive", source = "active")
-    UserDTO userToUserDTO(User user);
+    UserRecord userToUserRecord(User user);
 
     @Mapping(target = "isActive", source = "isActive")
-    User userDTOToUser(UserDTO userDTO);
+    User userRecordToUser(UserRecord userRecord);
 }

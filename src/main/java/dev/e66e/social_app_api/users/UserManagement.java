@@ -6,6 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+import java.util.UUID;
+
 @Component
 @RequiredArgsConstructor
 class UserManagement implements UserExternalAPI, UserInternalAPI, UserRegistration {
@@ -20,15 +23,21 @@ class UserManagement implements UserExternalAPI, UserInternalAPI, UserRegistrati
     }
 
     @Override
-    public UserDTO register(RegistrationData registrationData) {
+    public UserRecord register(RegistrationData registrationData) {
         User newUser = User.builder()
                 .id(registrationData.id())
                 .username(registrationData.username())
                 .publicUsername(registrationData.publicUsername())
                 .avatarUrl(registrationData.avatarUrl())
                 .build();
-        UserDTO userDTO = mapper.userToUserDTO(this.userRepository.save(newUser));
+        UserRecord userRecord = mapper.userToUserRecord(this.userRepository.save(newUser));
         this.events.publishEvent(new UserCreatedEvent());
-        return userDTO;
+        return userRecord;
+    }
+
+    @Override
+    public Optional<UserRecord> getUser(UUID userId) {
+        return this.userRepository.findById(userId)
+                .map(this.mapper::userToUserRecord);
     }
 }

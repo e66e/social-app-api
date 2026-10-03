@@ -1,7 +1,10 @@
 package dev.e66e.social_app_api.posts;
 
 import dev.e66e.social_app_api.posts.idempotency.PostIdempotencyAPI;
+import dev.e66e.social_app_api.users.UserInternalAPI;
+import dev.e66e.social_app_api.users.UserRecord;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,12 +24,30 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
     private final PostRepository postRepository;
     private final PostMapper postMapper;
     private final PostIdempotencyAPI postIdempotencyAPI;
+    private final UserInternalAPI userAPI;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public Optional<PostResponse> getPost(UUID id) {
-        Optional<Post> post = postRepository.findById(id);
+        Optional<Post> postOp = postRepository.findById(id);
 
-        return post.map(this.postMapper::postToPostResponse);
+        if (postOp.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Post post = postOp.get();
+
+        Optional<UserRecord> userOp = userAPI.getUser(post.getAuthorId());
+
+        return Optional.of(new PostResponse(
+                post.getId(),
+                userOp.map(UserRecord::id).orElse(null),
+                userOp.map(UserRecord::publicUsername).orElse(null),
+                post.getCreatedAt(),
+                post.getUpdatedAt(),
+                post.getTextContent(),
+                post.getImageUrl()
+        ));
     }
 
     @Override
@@ -37,12 +58,30 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
         UUID createdPostId = this.postIdempotencyAPI.executeIdempotent(authorId, idempotencyKey, postHash, () -> {
             Post newPost = new Post(authorId, postRequest.content(), postRequest.imageUrl());
 
-            return this.postRepository.save(newPost).getId();
+            return this.postRepository.saveAndFlush(newPost).getId();
         });
 
-        return this.getPost(createdPostId).orElseThrow(() ->
+        PostRecord post = this.getPostRecord(createdPostId).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                        "Post was created but not found in db."));
+                        "Post was created but later on was not found in db."));
+
+        String authorUsername = this.userAPI.getUser(authorId)
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                                "User was authenticated but was not found in db."))
+                .publicUsername();
+
+        this.eventPublisher.publishEvent(new PostPublishedEvent(createdPostId));
+
+        return new PostResponse(
+                createdPostId,
+                authorId,
+                authorUsername,
+                post.createdAt(),
+                post.updatedAt(),
+                post.textContent(),
+                post.imageUrl()
+        );
     }
 
     private String createPostHash(UUID authorId, PostRequest postRequest) {
@@ -59,5 +98,12 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
                 .getBytes(StandardCharsets.UTF_8));
 
         return HexFormat.of().formatHex(hash);
+    }
+
+    @Override
+    public Optional<PostRecord> getPostRecord(UUID id) {
+        Optional<Post> post = this.postRepository.findById(id);
+
+        return post.map(postMapper::postToPostRecord);
     }
 }

@@ -6,6 +6,6 @@ import org.mapstruct.MappingConstants;
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 interface PostMapper {
 
-    PostResponse postToPostResponse(Post post);
-    Post postResponseToPost(PostResponse postDTO);
+    PostRecord postToPostRecord(Post post);
+    Post postRecordToPost(PostRecord postDTO);
 }

@@ -7,7 +7,7 @@ import dev.e66e.social_app_api.onboarding.persistence.UserOnboardingData;
 import dev.e66e.social_app_api.onboarding.persistence.UserOnboardingRepository;
 import dev.e66e.social_app_api.onboarding.persistence.UserOnboardingStatus;
 import dev.e66e.social_app_api.users.RegistrationData;
-import dev.e66e.social_app_api.users.UserDTO;
+import dev.e66e.social_app_api.users.UserRecord;
 import dev.e66e.social_app_api.users.UserRegistration;
 import dev.e66e.social_app_api.users.persistence.UserRole;
 import org.junit.jupiter.api.DisplayName;
@@ -144,7 +144,7 @@ class OnboardingManagementTest {
                             "correctUsername",
                     "correctPublicUsername",
                     "");
-            UserDTO userDTO = new UserDTO(
+            UserRecord userRecord = new UserRecord(
                     id,
                     dto.username(),
                     dto.publicUsername(),
@@ -166,12 +166,12 @@ class OnboardingManagementTest {
             when(userOnboardingRepository.findById(id))
                     .thenReturn(Optional.of(foundById));
             when(userRegistration.register(registrationData))
-                    .thenReturn(userDTO);
+                    .thenReturn(userRecord);
             // When
-            UserDTO returnValue = onboardingManagement.userOnboarding(id, dto);
+            UserRecord returnValue = onboardingManagement.userOnboarding(id, dto);
 
             // Then
-            assertEquals(userDTO, returnValue);
+            assertEquals(userRecord, returnValue);
             verify(userOnboardingEvaluator, times(1)).check(dto);
             verify(userOnboardingRepository, times(2)).findById(any());
             verify(userRegistration, times(1)).register(any());
@@ -263,7 +263,7 @@ class OnboardingManagementTest {
                     "correctUsername",
                     "correctPublicUsername",
                     "");
-            UserDTO userDTO = new UserDTO(
+            UserRecord userRecord = new UserRecord(
                     id,
                     dto.username(),
                     dto.publicUsername(),
@@ -283,16 +283,16 @@ class OnboardingManagementTest {
             when(userOnboardingRepository.findById(id))
                     .thenReturn(Optional.empty());
             when(userRegistration.register(registrationData))
-                    .thenReturn(userDTO);
+                    .thenReturn(userRecord);
             UserOnboardingData newUserOnboarding = new UserOnboardingData(id, UserOnboardingStatus.PENDING);
             when(userOnboardingRepository.saveAndFlush(newUserOnboarding))
                     .thenReturn(newUserOnboarding);
 
             // When
-            UserDTO returnValue = onboardingManagement.userOnboarding(id, dto);
+            UserRecord returnValue = onboardingManagement.userOnboarding(id, dto);
 
             // Then
-            assertEquals(userDTO, returnValue);
+            assertEquals(userRecord, returnValue);
             verify(userOnboardingEvaluator).check(dto);
             verify(userOnboardingRepository, times(2)).findById(any());
             verify(userRegistration).register(any());

@@ -5,5 +5,5 @@ import java.util.UUID;
 
 public interface PostInternalAPI {
 
-    Optional<PostResponse> getPost(UUID id);
+    Optional<PostRecord> getPostRecord(UUID id);
 }

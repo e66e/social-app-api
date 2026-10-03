@@ -31,7 +31,7 @@ class Post {
     private String textContent;
 
     @Column(name = "image_url")
-    @Nullable
+//    @Nullable
     private String imageUrl;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -41,7 +41,7 @@ class Post {
     @Nullable
     private Instant updatedAt;
 
-    public Post(UUID authorId, String textContent, @Nullable String imageUrl) {
+    public Post(UUID authorId, String textContent, String imageUrl) {
         this.authorId = authorId;
         this.textContent = textContent;
         this.imageUrl = imageUrl;

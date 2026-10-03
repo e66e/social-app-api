@@ -15,22 +15,22 @@ import java.util.UUID;
 @RequiredArgsConstructor
 class PostController {
 
-    private final PostExternalAPI postExternalApi;
+    private final PostExternalAPI postAPI;
 
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     PostResponse getPostById(@PathVariable UUID id) {
-        return this.postExternalApi.getPost(id)
+        return this.postAPI.getPost(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found"));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     PostResponse createPost(@RequestBody CreatePostRequest createPostRequest,
-                            @AuthenticationPrincipal Jwt jwt) {
+                          @AuthenticationPrincipal Jwt jwt) {
         UUID userId = UUID.fromString(Objects.requireNonNull(jwt.getSubject()));
 
-        return this.postExternalApi.createPost(userId,
+        return this.postAPI.createPost(userId,
                 createPostRequest.idempotencyKey(),
                 createPostRequest.postRequest());
     }

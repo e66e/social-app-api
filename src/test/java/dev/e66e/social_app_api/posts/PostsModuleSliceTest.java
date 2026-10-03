@@ -111,7 +111,7 @@ class PostsModuleSliceTest {
                     .accept(MediaType.APPLICATION_JSON)
                     .exchange()
                     .expectStatus().isOk()
-                    .expectBody(PostResponse.class)
+                    .expectBody(PostRecord.class)
                     .value(post -> {
                         assertNotNull(post);
                         assertEquals(postFromDb.getId(), post.id());
@@ -159,7 +159,7 @@ class PostsModuleSliceTest {
                     .accept(MediaType.APPLICATION_JSON)
                     .exchange()
                     .expectStatus().isCreated()
-                    .expectBody(PostResponse.class)
+                    .expectBody(PostRecord.class)
                     .value(post -> {
                         assertNotNull(post);
                         assertEquals(pr.content(), post.textContent());
@@ -174,13 +174,13 @@ class PostsModuleSliceTest {
         @Test
         void whenPostingWithSameContentAndSameIdempotencyKey_thenReturnFirstPost() {
             // Given
-            PostResponse responseBody = restTestClient.post()
+            PostRecord responseBody = restTestClient.post()
                     .uri("/posts")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + MockJwt.TOKEN)
                     .body(cpr)
                     .accept(MediaType.APPLICATION_JSON)
                     .exchange()
-                    .expectBody(PostResponse.class)
+                    .expectBody(PostRecord.class)
                     .returnResult().getResponseBody();
 
             assertNotNull(responseBody);
@@ -193,7 +193,7 @@ class PostsModuleSliceTest {
                     .accept(MediaType.APPLICATION_JSON)
                     .exchange()
                     .expectStatus().isCreated()
-                    .expectBody(PostResponse.class)
+                    .expectBody(PostRecord.class)
                     .value(post -> {
                         assertNotNull(post);
                         assertEquals(responseBody, post);
@@ -205,13 +205,13 @@ class PostsModuleSliceTest {
         @Test
         void whenSameIdempotencyKeyUsedForDifferentPost_returnConflictStatus() {
             // Given
-            PostResponse responseBody = restTestClient.post()
+            PostRecord responseBody = restTestClient.post()
                     .uri("/posts")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + MockJwt.TOKEN)
                     .body(cpr)
                     .accept(MediaType.APPLICATION_JSON)
                     .exchange()
-                    .expectBody(PostResponse.class)
+                    .expectBody(PostRecord.class)
                     .returnResult().getResponseBody();
 
             assertNotNull(responseBody);
