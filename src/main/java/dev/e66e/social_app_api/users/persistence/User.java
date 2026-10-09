@@ -49,6 +49,10 @@ public class User {
     @ColumnDefault("'USER'")
     private UserRole role;
 
+    @Column(name = "is_hot_user", nullable = false)
+    @ColumnDefault("false")
+    private boolean isHotUser = false;
+
     @Override
     public final boolean equals(@Nullable Object o) {
         if (this == o) return true;

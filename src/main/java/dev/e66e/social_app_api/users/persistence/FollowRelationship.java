@@ -1,15 +1,15 @@
 package dev.e66e.social_app_api.users.persistence;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+
+import java.util.UUID;
 
 @Entity
 @Getter
 @Setter
 @NoArgsConstructor
-class FollowRelationship {
+public class FollowRelationship {
 
     @EmbeddedId
     private FollowRelationshipId id;
@@ -29,4 +29,19 @@ class FollowRelationship {
         this.follower = follower;
         this.followTarget = followTarget;
     }
+}
+
+@Embeddable
+@Getter
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@EqualsAndHashCode
+class FollowRelationshipId {
+
+    @Column(name = "follower_id", nullable = false)
+    private UUID followerId;
+
+    @Column(name = "follow_target_id", nullable = false)
+    private UUID followTargetId;
 }

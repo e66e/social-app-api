@@ -1,6 +1,7 @@
 package dev.e66e.social_app_api.users;
 
 import dev.e66e.social_app_api.users.persistence.User;
+import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
@@ -9,8 +10,9 @@ import org.mapstruct.MappingConstants;
 interface UserMapper {
 
     @Mapping(target = "isActive", source = "active")
+    @Mapping(target = "isHotUser", source = "hotUser")
     UserRecord userToUserRecord(User user);
 
-    @Mapping(target = "isActive", source = "isActive")
+    @InheritInverseConfiguration
     User userRecordToUser(UserRecord userRecord);
 }

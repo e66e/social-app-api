@@ -13,6 +13,6 @@ public record UserRecord(
     String avatarUrl,
     String bio,
     boolean isActive,
-    UserRole role
-) {
-}
+    UserRole role,
+    boolean isHotUser
+) {}

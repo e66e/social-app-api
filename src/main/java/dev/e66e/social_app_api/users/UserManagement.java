@@ -1,11 +1,14 @@
 package dev.e66e.social_app_api.users;
 
+import dev.e66e.social_app_api.users.persistence.FollowRelationship;
+import dev.e66e.social_app_api.users.persistence.FollowRelationshipRepository;
 import dev.e66e.social_app_api.users.persistence.User;
 import dev.e66e.social_app_api.users.persistence.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,6 +19,7 @@ class UserManagement implements UserExternalAPI, UserInternalAPI, UserRegistrati
     private final UserRepository userRepository;
     private final ApplicationEventPublisher events;
     private final UserMapper mapper;
+    private final FollowRelationshipRepository followRelationshipRepository;
 
     @Override
     public boolean isUsernameAvailable(String username) {
@@ -39,5 +43,16 @@ class UserManagement implements UserExternalAPI, UserInternalAPI, UserRegistrati
     public Optional<UserRecord> getUser(UUID userId) {
         return this.userRepository.findById(userId)
                 .map(this.mapper::userToUserRecord);
+    }
+
+    @Override
+    public List<UserRecord> getUsersFollowers(UUID userId) {
+        List<FollowRelationship> follows = this.followRelationshipRepository.findById_followTargetId(userId);
+        List<User> followers = this.userRepository.findByIdIn(follows.stream()
+                .map(relation -> relation.getFollower().getId())
+                .toList()
+        );
+
+        return followers.stream().map(this.mapper::userToUserRecord).toList();
     }
 }

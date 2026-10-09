@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -53,10 +54,12 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
     @Override
     @Transactional
     public PostResponse createPost(UUID authorId, String idempotencyKey, PostRequest postRequest) {
+        // TODO try to add agent which will check if post contents are harmful
         String postHash = this.createPostHash(authorId, postRequest);
 
         UUID createdPostId = this.postIdempotencyAPI.executeIdempotent(authorId, idempotencyKey, postHash, () -> {
-            Post newPost = new Post(authorId, postRequest.content(), postRequest.imageUrl());
+            Post newPost = new Post(authorId, postRequest.content(),
+                    Objects.requireNonNull(postRequest.imageUrl()));
 
             return this.postRepository.saveAndFlush(newPost).getId();
         });
@@ -71,7 +74,7 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
                                 "User was authenticated but was not found in db."))
                 .publicUsername();
 
-        this.eventPublisher.publishEvent(new PostPublishedEvent(createdPostId));
+        this.eventPublisher.publishEvent(new PostPublishedEvent(UUID.randomUUID(), createdPostId));
 
         return new PostResponse(
                 createdPostId,

@@ -45,3 +45,32 @@ spring:
 server:
   servlet:
     context-path: '/api'
+
+feed:
+  async:
+    stream:
+      key: feed:events
+
+    publisher:
+      failed:
+        batch-size: 100
+        fixed-delay-ms: 1000
+        max-in-flight: 10
+
+      in-progress:
+        fixed-delay-ms: 5000
+
+    consumer:
+      group: feed-workers
+      name: worker-1
+      batch-size: 100
+      dlq-stream-key: feed:events:dlq
+      reclaim-enabled: true
+      reclaim-fixed-delay-ms: 5000
+      reclaim-idle-ms: 3000
+      reclaim-batch-size: 50
+      fixed-delay-ms: 1000
+      recover-fixed-delay-ms: 5000
+      max-processing-attempts: 5
+  default-page-size: 5
+  home-feed-ttl-in-minutes: 5
