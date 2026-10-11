@@ -151,7 +151,8 @@ class OnboardingManagementTest {
                     "",
                     "",
                     true,
-                    UserRole.USER
+                    UserRole.USER,
+                    false
             );
             UserOnboardingData foundById = new UserOnboardingData(
                     id, UserOnboardingStatus.PENDING);
@@ -270,7 +271,8 @@ class OnboardingManagementTest {
                     "",
                     "",
                     true,
-                    UserRole.USER
+                    UserRole.USER,
+                    false
             );
             RegistrationData registrationData = new RegistrationData(
                     id,

@@ -81,10 +81,7 @@ class FeedManagement implements FeedExternalAPI, FeedInternalAPI {
 
         double hotUserPenalty = author.isHotUser() ? 0.15 : 0.0;
 
-        double affinityBoost = followerFollowTargetIds.contains(author.id())
-                && followerId.equals(author.id()) ? 0.0 : 0.2;
-
-        double rankingScore = Math.round((recencyScore + affinityBoost - hotUserPenalty) * 100.0) / 100.0;
+        double rankingScore = Math.round((recencyScore - hotUserPenalty) * 100.0) / 100.0;
 
         return new FeedItem(
                 new PostResponse(

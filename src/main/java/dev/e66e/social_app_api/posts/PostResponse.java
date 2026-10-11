@@ -12,5 +12,5 @@ public record PostResponse(
         Instant createdAt,
         @Nullable Instant updatedAt,
         String textContent,
-        String imageUrl
+        @Nullable String imageUrl
 ) {}

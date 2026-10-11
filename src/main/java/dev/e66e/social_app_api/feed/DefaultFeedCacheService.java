@@ -3,9 +3,11 @@ package dev.e66e.social_app_api.feed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.types.Expiration;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.UUID;
@@ -78,7 +80,8 @@ class DefaultFeedCacheService implements FeedCacheService {
             this.redis.opsForValue().set(
                     this.homeFeedKey(timelinePage.ownerId()),
                     payload,
-                    this.properties.getHomeFeedTtlInMinutes());
+                    Expiration.from(Duration.ofMinutes(this.properties.getHomeFeedTtlInMinutes()))
+            );
         } catch (Exception e) {
             log.info("Something went wrong with redis while setting payload for user {}, {}",
                     timelinePage.ownerId(), e.getMessage());

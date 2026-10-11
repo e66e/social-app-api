@@ -29,7 +29,6 @@ public class KeycloakTestcontainersInitializer
 
     static {
         keycloak.start();
-        System.out.println(keycloak.getLogs());
     }
 
     @Override
