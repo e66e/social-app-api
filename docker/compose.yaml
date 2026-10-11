@@ -32,3 +32,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  redis:
+    image: 'redis:8.10.2-alpine'
+    ports:
+      - '6379:6379'

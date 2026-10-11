@@ -31,7 +31,6 @@ class Post {
     private String textContent;
 
     @Column(name = "image_url")
-//    @Nullable
     private String imageUrl;
 
     @Column(name = "created_at", nullable = false, updatable = false)

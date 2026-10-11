@@ -8,7 +8,7 @@ import java.util.UUID;
 public record PostResponse(
         UUID postId,
         @Nullable UUID authorId,
-        @Nullable String authorUsername,
+        @Nullable String authorPubUsername,
         Instant createdAt,
         @Nullable Instant updatedAt,
         String textContent,

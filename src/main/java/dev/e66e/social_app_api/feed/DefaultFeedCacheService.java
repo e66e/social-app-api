@@ -65,12 +65,13 @@ class DefaultFeedCacheService implements FeedCacheService {
                 updatedItems.stream().toList().reversed(),
                 existing.totalItems() + 1 > updatedItems.size()
                         && !updatedItems.isEmpty()
-                        ? CursorCodec.encode(updatedItems.peek())
+                        ? FeedCursorCodec.encode(updatedItems.peek())
                         : null
                 )
         );
     }
 
+    @Override
     public void writeHomeFeed(TimelinePage timelinePage) {
         try {
             String payload = this.objectMapper.writeValueAsString(timelinePage);

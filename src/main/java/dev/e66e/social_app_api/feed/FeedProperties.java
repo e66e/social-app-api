@@ -10,4 +10,5 @@ class FeedProperties {
 
     private int defaultPageSize;
     private int homeFeedTtlInMinutes;
+    private int maxPageSize;
 }

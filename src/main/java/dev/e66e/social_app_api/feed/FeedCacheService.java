@@ -7,6 +7,8 @@ import java.util.UUID;
 interface FeedCacheService {
 
     Optional<TimelinePage> getHomeFeed(UUID userId);
+
     void prependToHomeFeed(UUID userId, FeedItem item);
+
     void writeHomeFeed(TimelinePage timelinePage);
 }

@@ -1,7 +1,7 @@
 package dev.e66e.social_app_api.users;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface UserInternalAPI {
@@ -10,5 +10,9 @@ public interface UserInternalAPI {
 
     Optional<UserRecord> getUser(UUID authorId);
 
-    List<UserRecord> getUsersFollowers(UUID userId);
+    Set<UUID> getUsersFollowersIds(UUID userId);
+
+    Set<UUID> getFollowTargetIds(UUID userId);
+
+    Set<UserRecord> getUserGroup(Set<UUID> userIds);
 }

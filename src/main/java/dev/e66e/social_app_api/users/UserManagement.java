@@ -8,9 +8,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -46,13 +47,30 @@ class UserManagement implements UserExternalAPI, UserInternalAPI, UserRegistrati
     }
 
     @Override
-    public List<UserRecord> getUsersFollowers(UUID userId) {
-        List<FollowRelationship> follows = this.followRelationshipRepository.findById_followTargetId(userId);
-        List<User> followers = this.userRepository.findByIdIn(follows.stream()
-                .map(relation -> relation.getFollower().getId())
-                .toList()
-        );
+    public Set<UUID> getUsersFollowersIds(UUID userId) {
+        Set<FollowRelationship> follows = this.followRelationshipRepository.findById_followTargetId(userId);
 
-        return followers.stream().map(this.mapper::userToUserRecord).toList();
+        return follows.stream()
+                .map(FollowRelationship::getFollowerId)
+                .collect(Collectors.toSet());
     }
+
+    @Override
+    public Set<UUID> getFollowTargetIds(UUID follower) {
+        Set<FollowRelationship> userFollowTargets = this.followRelationshipRepository.findById_followerId(follower);
+
+        return userFollowTargets.stream()
+                .map(FollowRelationship::getFollowTargetId)
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<UserRecord> getUserGroup(Set<UUID> userIds) {
+        Set<User> users = this.userRepository.findByIdIn(userIds);
+
+        return users.stream()
+                .map(this.mapper::userToUserRecord)
+                .collect(Collectors.toSet());
+    }
+
 }

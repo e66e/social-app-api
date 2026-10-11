@@ -7,7 +7,7 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-class CursorCodec {
+class FeedCursorCodec {
 
     private static final String SEPARATOR = "|";
     private static final String SEPARATOR_REGEX = Pattern.quote(SEPARATOR);

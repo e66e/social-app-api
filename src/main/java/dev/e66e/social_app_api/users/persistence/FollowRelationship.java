@@ -29,6 +29,14 @@ public class FollowRelationship {
         this.follower = follower;
         this.followTarget = followTarget;
     }
+
+    public UUID getFollowerId() {
+        return this.id.getFollowerId();
+    }
+
+    public UUID getFollowTargetId() {
+        return this.id.getFollowTargetId();
+    }
 }
 
 @Embeddable

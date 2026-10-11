@@ -74,3 +74,4 @@ feed:
       max-processing-attempts: 5
   default-page-size: 5
   home-feed-ttl-in-minutes: 5
+  max-page-size: 20

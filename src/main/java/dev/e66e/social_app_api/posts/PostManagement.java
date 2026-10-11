@@ -5,6 +5,7 @@ import dev.e66e.social_app_api.users.UserInternalAPI;
 import dev.e66e.social_app_api.users.UserRecord;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,10 +14,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import java.time.Instant;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -108,5 +107,57 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
         Optional<Post> post = this.postRepository.findById(id);
 
         return post.map(postMapper::postToPostRecord);
+    }
+
+    @Override
+    public List<PostRecord> fetchNewestPostsOfGivenUsers(Set<UUID> userIds, int fetchSize) {
+        PageRequest pageRequest = PageRequest.of(0, fetchSize);
+        List<Post> posts = this.postRepository.findByAuthorIdInOrderByCreatedAtDescIdDesc(userIds, pageRequest);
+
+        return posts.stream()
+                .map(this.postMapper::postToPostRecord)
+                .toList();
+    }
+
+    @Override
+    public List<PostRecord> fetchNewestPostAfterDateAndId(Set<UUID> userIds, Instant createdAt,
+                                                          UUID postId, int fetchSize) {
+        PageRequest pageRequest = PageRequest.of(0, fetchSize);
+        List<Post> posts = this.postRepository
+                .findHomePageByCreatedAtAndPostId(userIds, createdAt, postId, pageRequest);
+
+        return posts.stream()
+                .map(this.postMapper::postToPostRecord)
+                .toList();
+    }
+
+    @Override
+    public long getNumberOfPostsOfAuthorGroup(Set<UUID> authorsIds) {
+        return this.postRepository.countByAuthorIdIn(authorsIds);
+    }
+
+    @Override
+    public List<PostRecord> getUserNewestPosts(UUID userId, int limit) {
+        PageRequest pageRequest = PageRequest.of(0, limit);
+        List<Post> posts = this.postRepository.findByAuthorIdOrderByCreatedAtDescIdDesc(userId, pageRequest);
+
+        return posts.stream()
+                .map(this.postMapper::postToPostRecord)
+                .toList();
+    }
+
+    @Override
+    public List<PostRecord> getUserPostsAfterCursor(UUID userId, Instant createdAt, UUID postId, int limit) {
+        PageRequest pageRequest = PageRequest.of(0, limit);
+        List<Post> posts = this.postRepository.findByCursor(userId, createdAt, postId, pageRequest);
+
+        return posts.stream()
+                .map(this.postMapper::postToPostRecord)
+                .toList();
+    }
+
+    @Override
+    public long getNumberOfPostsOfAuthor(UUID userId) {
+        return this.postRepository.countByAuthorId(userId);
     }
 }
