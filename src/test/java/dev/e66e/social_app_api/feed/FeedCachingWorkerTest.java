@@ -41,6 +41,9 @@ class FeedCachingWorkerTest {
     @Mock
     private ObjectMapper objectMapper;
 
+    @Mock
+    private FeedCachingWorker self;
+
     private FeedCachingWorker worker;
 
     @BeforeEach
@@ -61,7 +64,8 @@ class FeedCachingWorkerTest {
                 feedEventFailureRepository,
                 feedAPI,
                 deadLetterFeedEventRepository,
-                objectMapper
+                objectMapper,
+                self
         );
     }
 
@@ -74,8 +78,7 @@ class FeedCachingWorkerTest {
             UUID postId = UUID.randomUUID();
             MapRecord<String, Object, Object> record = record(eventId, postId);
 
-            when(processedFeedEventRepository.saveAndFlush(any(ProcessedFeedEvent.class)))
-                    .thenReturn(new ProcessedFeedEvent(eventId));
+            when(self.tryClaim(eventId)).thenReturn(true);
 
             ReflectionTestUtils.invokeMethod(worker, "processRecord", record);
 

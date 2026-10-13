@@ -12,6 +12,7 @@ public class RedisTestcontainersInitializer implements ApplicationContextInitial
             new GenericContainer<>(DockerImageName
                     .parse("redis:8.10.2-alpine"))
                     .withExposedPorts(6379);
+
     static {
         redis.start();
     }
@@ -20,7 +21,7 @@ public class RedisTestcontainersInitializer implements ApplicationContextInitial
     public void initialize(ConfigurableApplicationContext ctx) {
         TestPropertyValues.of(
                 "spring.data.redis.host=" + redis.getHost(),
-                "spring.data.redis.port=" + redis.getMappedPort(8080)
+                "spring.data.redis.port=" + redis.getMappedPort(6379)
         ).applyTo(ctx.getEnvironment());
     }
 }

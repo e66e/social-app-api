@@ -2,8 +2,8 @@ package dev.e66e.social_app_api.feed;
 
 import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.RedisSystemException;
@@ -11,6 +11,7 @@ import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
@@ -20,7 +21,6 @@ import java.util.Map;
 import java.util.UUID;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 class FeedCachingWorker {
 
@@ -31,6 +31,25 @@ class FeedCachingWorker {
     private final FeedInternalAPI feedAPI;
     private final DeadLetterFeedEventRepository deadLetterFeedEventRepository;
     private final ObjectMapper objectMapper;
+    private final FeedCachingWorker self;
+
+    public FeedCachingWorker(FeedAsyncProperties prop,
+                             StringRedisTemplate redis,
+                             ProcessedFeedEventRepository processedFeedEventRepository,
+                             FeedEventFailureRepository feedEventFailureRepository,
+                             FeedInternalAPI feedAPI,
+                             DeadLetterFeedEventRepository deadLetterFeedEventRepository,
+                             ObjectMapper objectMapper,
+                             @Lazy FeedCachingWorker self) {
+        this.prop = prop;
+        this.redis = redis;
+        this.processedFeedEventRepository = processedFeedEventRepository;
+        this.feedEventFailureRepository = feedEventFailureRepository;
+        this.feedAPI = feedAPI;
+        this.deadLetterFeedEventRepository = deadLetterFeedEventRepository;
+        this.objectMapper = objectMapper;
+        this.self = self;
+    }
 
     @PostConstruct
     void initializeConsumerGroup() {
@@ -128,6 +147,7 @@ class FeedCachingWorker {
                             ReadOffset.lastConsumed())
             );
         } catch (Exception e) {
+            log.error(e.getMessage());
             return;
         }
 
@@ -135,7 +155,7 @@ class FeedCachingWorker {
             return;
         }
 
-        records.forEach(this::processRecord); // TODO parallel?
+        records.forEach(this::processRecord);
     }
 
     @Scheduled(fixedDelayString = "${feed.async.consumer.recover-fixed-delay-ms}")
@@ -252,9 +272,7 @@ class FeedCachingWorker {
         }
 
         try {
-            try {
-                this.processedFeedEventRepository.saveAndFlush(new ProcessedFeedEvent(eventId));
-            } catch (DataIntegrityViolationException duplicateEvent) {
+            if (!self.tryClaim(eventId)) {
                 redis.opsForStream().acknowledge(streamKey, consumerGroup, record.getId());
                 return;
             }
@@ -273,6 +291,16 @@ class FeedCachingWorker {
             this.moveToDeadLetter(record, eventFields, eventId, attemptCount, e);
             redis.opsForStream().acknowledge(streamKey, consumerGroup, record.getId());
             this.feedEventFailureRepository.deleteById(eventId);
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean tryClaim(UUID eventId) {
+        try {
+            this.processedFeedEventRepository.saveAndFlush(new ProcessedFeedEvent(eventId));
+            return true;
+        } catch (DataIntegrityViolationException e) {
+            return false;
         }
     }
 
