@@ -11,12 +11,15 @@ import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 
 @DataJpaAndRedis
@@ -25,6 +28,7 @@ import static org.mockito.Mockito.verify;
         FeedCachingWorker.class,
         FeedCachingWorkerIT.PropertiesConfig.class
 })
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
 public class FeedCachingWorkerIT {
 
     @Autowired
@@ -71,16 +75,120 @@ public class FeedCachingWorkerIT {
 
     @Test
     void processesNewRecord_successfully_acksAndMarksProcessed() {
+        // Given
         UUID eventId = UUID.randomUUID();
         UUID postId = UUID.randomUUID();
         publish(eventId, postId);
 
+        // When
         worker.consumePostCreationEvenStream();
 
-
+        // Then
         verify(feedAPI).processPostCreatedEvent(postId);
         assertThat(processedRepo.findById(eventId)).isPresent();
         assertThat(failureRepo.findById(eventId)).isEmpty();
+        assertThat(pendingCount()).isZero();
+    }
+
+    @Test
+    void duplicateEvent_isAcknowledgedWithoutProcessingAgain() {
+        // Given
+        UUID eventId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+        processedRepo.saveAndFlush(new ProcessedFeedEvent(eventId));
+
+        publish(eventId, postId);
+
+        // When
+        worker.consumePostCreationEvenStream();
+
+        // Then
+        verify(feedAPI, never()).processPostCreatedEvent(any());
+        assertThat(pendingCount()).isZero();
+    }
+
+    @Test
+    void malformedRecord_isAcknowledgedAndSkipped() {
+        // Given
+        redis.opsForStream().add(MapRecord.create(aProps.getStream().getKey(),
+                Map.of(
+                    "eventId", "not-a-uuid",
+                    "postId", "not-a-uuid"
+        )));
+
+        // When
+        worker.consumePostCreationEvenStream();
+
+        // Then
+        verifyNoInteractions(feedAPI);
+        assertThat(pendingCount()).isZero();
+    }
+
+    @Test
+    void failingEvent_belowMaxAttempts_staysPendingWithFailureRecord() {
+        // Given
+        UUID eventId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+        doThrow(new RuntimeException("post module blew up"))
+                .when(feedAPI).processPostCreatedEvent(postId);
+
+        publish(eventId, postId);
+
+        // When
+        worker.consumePostCreationEvenStream();
+
+        // Then
+        FeedEventFailure failure = failureRepo.findById(eventId).orElseThrow();
+        assertThat(failure.getAttemptCount()).isEqualTo(1);
+        assertThat(failure.getLastError()).contains("post module blew up");
+        assertThat(deadLetterRepo.count()).isZero();
+        assertThat(pendingCount()).isEqualTo(1);
+    }
+
+    @Test
+    void failingEvent_atMaxAttempts_movesToDeadLetterAndAcknowledges() {
+        // Given
+        UUID eventId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+        doThrow(new RuntimeException("persistent failure"))
+                .when(feedAPI).processPostCreatedEvent(postId);
+
+        publish(eventId, postId);
+
+        // When
+        worker.consumePostCreationEvenStream();
+        worker.recoverPostCreationEventStream();
+
+        // Then
+        assertThat(deadLetterRepo.count()).isEqualTo(1);
+        DeadLetterFeedEvent dlq = deadLetterRepo.findAll().getFirst();
+        assertThat(dlq.getEventId()).isEqualTo(eventId);
+        assertThat(dlq.getAttempts()).isEqualTo(2);
+
+        assertThat(failureRepo.findById(eventId)).isEmpty();
+        assertThat(pendingCount()).isZero();
+
+        assertThat(redis.opsForStream().size(aProps.getConsumer().getDlqStreamKey())).isEqualTo(1L);
+    }
+
+    @Test
+    void successAfterFailure_clearsFailureState() {
+        // Given
+        UUID eventId = UUID.randomUUID();
+        UUID postId = UUID.randomUUID();
+        doThrow(new RuntimeException("transient"))
+                .doNothing()
+                .when(feedAPI).processPostCreatedEvent(postId);
+
+        publish(eventId, postId);
+
+        // When
+        worker.consumePostCreationEvenStream();
+        worker.recoverPostCreationEventStream();
+
+        // Then
+        assertThat(failureRepo.findById(eventId)).isEmpty();
+        assertThat(processedRepo.findById(eventId)).isPresent();
         assertThat(pendingCount()).isZero();
     }
 

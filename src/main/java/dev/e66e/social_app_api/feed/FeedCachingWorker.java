@@ -4,7 +4,6 @@ import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.connection.stream.*;
@@ -272,14 +271,20 @@ class FeedCachingWorker {
         }
 
         try {
-            if (!self.tryClaim(eventId)) {
+//            if (!self.tryClaim(eventId)) {
+//                redis.opsForStream().acknowledge(streamKey, consumerGroup, record.getId());
+//                return;
+//            }
+
+            if (this.processedFeedEventRepository.existsById(eventId)) {
                 redis.opsForStream().acknowledge(streamKey, consumerGroup, record.getId());
                 return;
             }
 
             this.feedAPI.processPostCreatedEvent(postId);
-            clearFailureState(eventId);
 
+            self.markProcessed(eventId);
+            clearFailureState(eventId);
             redis.opsForStream().acknowledge(streamKey, consumerGroup, record.getId());
         } catch (Exception e) {
             int attemptCount = this.recordFailureAttempt(eventId, e);
@@ -295,14 +300,23 @@ class FeedCachingWorker {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public boolean tryClaim(UUID eventId) {
-        try {
-            this.processedFeedEventRepository.saveAndFlush(new ProcessedFeedEvent(eventId));
-            return true;
-        } catch (DataIntegrityViolationException e) {
-            return false;
-        }
+    public void markProcessed(UUID eventId) {
+        this.processedFeedEventRepository.saveAndFlush(new ProcessedFeedEvent(eventId));
     }
+
+//    public boolean tryClaim(UUID eventId) {
+//        try {
+//            self.claim(eventId);
+//            return true;
+//        } catch (DataIntegrityViolationException e) {
+//            return false;
+//        }
+//    }
+//
+//    @Transactional(propagation = Propagation.REQUIRES_NEW)
+//    public void claim(UUID eventId) {
+//        this.processedFeedEventRepository.saveAndFlush(new ProcessedFeedEvent(eventId));
+//    }
 
     private void moveToDeadLetter(MapRecord<String, Object, Object> record,
                                   Map<Object, Object> eventFields, UUID eventId,
@@ -319,7 +333,7 @@ class FeedCachingWorker {
             redis.opsForStream().add(MapRecord.create(
                     prop.getConsumer().getDlqStreamKey(),
                     Map.of(
-                            "eventId", eventId,
+                            "eventId", eventId.toString(),
                             "sourceRecordId", record.getId().getValue(),
                             "failureReason", failureReason,
                             "attemptCount", String.valueOf(attemptCount),
@@ -327,7 +341,7 @@ class FeedCachingWorker {
                     )
             ));
         } catch (Exception ex) {
-            log.warn(failureReason, ex);
+            log.error(failureReason, ex);
         }
     }
 

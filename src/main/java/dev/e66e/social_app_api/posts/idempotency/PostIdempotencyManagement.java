@@ -33,7 +33,7 @@ class PostIdempotencyManagement implements PostIdempotencyAPI {
                                           String requestHash,
                                           Supplier<UUID> callback) {
 
-        var pcqOpt = self.tryReserve(authorId, idempotencyKey, requestHash);
+        var pcqOpt = this.tryReserve(authorId, idempotencyKey, requestHash);
         if (pcqOpt.isEmpty()) {
             PostCreationRequest pcr
                     = this.postCreationRequestRepository.findById_authorIdAndId_idempotencyKey(authorId, idempotencyKey)
@@ -81,7 +81,6 @@ class PostIdempotencyManagement implements PostIdempotencyAPI {
         }
     }
 
-//    @Transactional
     public Optional<PostCreationRequest> tryReserve(UUID authorId, String key, String hash) {
         try {
             var reserved = self.reserve(authorId, key, hash);

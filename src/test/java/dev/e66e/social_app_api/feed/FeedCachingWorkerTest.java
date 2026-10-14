@@ -78,7 +78,7 @@ class FeedCachingWorkerTest {
             UUID postId = UUID.randomUUID();
             MapRecord<String, Object, Object> record = record(eventId, postId);
 
-            when(self.tryClaim(eventId)).thenReturn(true);
+            when(processedFeedEventRepository.existsById(eventId)).thenReturn(false);
 
             ReflectionTestUtils.invokeMethod(worker, "processRecord", record);
 

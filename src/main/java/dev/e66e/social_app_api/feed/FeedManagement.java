@@ -98,7 +98,7 @@ class FeedManagement implements FeedExternalAPI, FeedInternalAPI {
     }
 
     @Override
-    public TimelinePage getHomeFeed(UUID userId, String cursor, int limit) {
+    public TimelinePage getHomeFeed(UUID userId, @Nullable String cursor, int limit) {
         int pageSize = this.normalizeLimit(limit);
 
         try {
