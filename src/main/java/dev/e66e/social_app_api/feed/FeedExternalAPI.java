@@ -8,5 +8,5 @@ public interface FeedExternalAPI {
 
     TimelinePage getHomeFeed(UUID userId, @Nullable String cursor, int limit);
 
-    TimelinePage getUserFeed(UUID userId, String cursor, int limit);
+    TimelinePage getUserFeed(UUID userId, @Nullable String cursor, int limit);
 }

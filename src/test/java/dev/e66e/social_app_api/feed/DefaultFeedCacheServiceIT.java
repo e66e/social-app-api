@@ -27,8 +27,8 @@ import static org.mockito.Mockito.when;
 @DataRedisTest
 @Import(DefaultFeedCacheService.class)
 @ImportAutoConfiguration(JacksonAutoConfiguration.class)
-@ModuleSlicing
 @ContextConfiguration(initializers = RedisTestcontainersInitializer.class)
+@ModuleSlicing
 public class DefaultFeedCacheServiceIT {
 
     @MockitoBean
@@ -139,6 +139,8 @@ public class DefaultFeedCacheServiceIT {
         assertThat(reloaded.items()).extracting(i -> i.post().postId()).contains(fresh);
         assertThat(reloaded.items()).hasSize(feedProp.getDefaultPageSize());
     }
+
+    // ---- helpers ----------------------------------------------------------------------------------------------------
 
     private FeedItem feedItem(UUID postId, String username, double score) {
         Instant now = Instant.now();

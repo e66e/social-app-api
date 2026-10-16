@@ -304,20 +304,6 @@ class FeedCachingWorker {
         this.processedFeedEventRepository.saveAndFlush(new ProcessedFeedEvent(eventId));
     }
 
-//    public boolean tryClaim(UUID eventId) {
-//        try {
-//            self.claim(eventId);
-//            return true;
-//        } catch (DataIntegrityViolationException e) {
-//            return false;
-//        }
-//    }
-//
-//    @Transactional(propagation = Propagation.REQUIRES_NEW)
-//    public void claim(UUID eventId) {
-//        this.processedFeedEventRepository.saveAndFlush(new ProcessedFeedEvent(eventId));
-//    }
-
     private void moveToDeadLetter(MapRecord<String, Object, Object> record,
                                   Map<Object, Object> eventFields, UUID eventId,
                                   int attemptCount, Exception e) {

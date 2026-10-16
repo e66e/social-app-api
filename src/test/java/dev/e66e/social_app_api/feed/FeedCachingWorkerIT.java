@@ -6,14 +6,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.connection.stream.MapRecord;
-import org.springframework.data.redis.connection.stream.ReadOffset;
+import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.modulith.test.ModuleSlicing;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -29,6 +31,7 @@ import static org.mockito.Mockito.*;
         FeedCachingWorkerIT.PropertiesConfig.class
 })
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
+@ModuleSlicing
 public class FeedCachingWorkerIT {
 
     @Autowired
@@ -169,6 +172,14 @@ public class FeedCachingWorkerIT {
         assertThat(pendingCount()).isZero();
 
         assertThat(redis.opsForStream().size(aProps.getConsumer().getDlqStreamKey())).isEqualTo(1L);
+        List<MapRecord<String, Object, Object>> dlqQ =
+                redis.opsForStream().range(aProps.getConsumer().getDlqStreamKey(), Range.unbounded());
+        assertThat(dlqQ).hasSize(1);
+        Map<Object, Object> fields = dlqQ.getFirst().getValue();
+        assertThat(fields.get("eventId")).isEqualTo(eventId.toString());
+        assertThat(fields.get("sourceRecordId")).isEqualTo(dlq.getStreamRecordId());
+        assertThat(fields.get("attemptCount")).isEqualTo("2");
+        assertThat((String) fields.get("payloadJson")).contains(eventId.toString());
     }
 
     @Test
@@ -191,6 +202,65 @@ public class FeedCachingWorkerIT {
         assertThat(processedRepo.findById(eventId)).isPresent();
         assertThat(pendingCount()).isZero();
     }
+
+    @Test
+    void reclaimStalePending_claimsAndProcesses() {
+        // Given
+        UUID eventId = UUID.randomUUID();
+        UUID postId  = UUID.randomUUID();
+
+        redis.opsForStream().add(MapRecord.create(aProps.getStream().getKey(),
+                Map.of(
+                        "eventId", eventId.toString(),
+                        "postId", postId.toString()
+                )));
+
+        //noinspection unchecked
+        redis.opsForStream().read(
+                Consumer.from(aProps.getConsumer().getGroup(), "dead-consumer"),
+                StreamReadOptions.empty().count(1),
+                StreamOffset.create(aProps.getStream().getKey(),
+                        ReadOffset.lastConsumed()));
+
+        assertThat(redis.opsForStream().pending(
+                        aProps.getStream().getKey(),
+                        aProps.getConsumer().getGroup())
+                .getTotalPendingMessages())
+                .as("record should be pending before reclaim")
+                .isEqualTo(1L);
+
+        // When
+        worker.reclaimStalePendingPostEvents();
+
+        // Then
+        verify(feedAPI).processPostCreatedEvent(postId);
+        assertThat(pendingCount()).isZero();
+    }
+
+    @Test
+    void recover_retriesUnackedPendingRecord() {
+        // Given
+        UUID eventId = UUID.randomUUID();
+        UUID postId  = UUID.randomUUID();
+
+        doThrow(new RuntimeException("boom"))
+                .doNothing()
+                .when(feedAPI).processPostCreatedEvent(postId);
+
+        publish(eventId, postId);
+
+        // When
+        worker.consumePostCreationEvenStream();   // fails, stays pending
+
+        worker.recoverPostCreationEventStream();  // succeeds
+
+        // Then
+        verify(feedAPI, times(2)).processPostCreatedEvent(postId);
+        assertThat(processedRepo.findById(eventId)).isPresent();
+        assertThat(pendingCount()).isZero();
+    }
+
+    // ---- helpers ----------------------------------------------------------------------------------------------------
 
     private void publish(UUID eventId, UUID postId) {
         redis.opsForStream().add(MapRecord.create(aProps.getStream().getKey(),

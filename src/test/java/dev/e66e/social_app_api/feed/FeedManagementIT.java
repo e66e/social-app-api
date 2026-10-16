@@ -21,13 +21,12 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @DataRedisTest
@@ -91,12 +90,13 @@ public class FeedManagementIT {
         // Then
         assertThat(page.items()).isNotNull();
         assertThat(page.items()).hasSize(1);
-        assertThat(page.items().getFirst().post().authorId()).isEqualTo(followed);
+        assertThat(Objects.requireNonNull(page.items().getFirst().post().authorId())).isEqualTo(followed);
         assertThat(redis.hasKey("feed:home" + viewer)).isTrue();
     }
 
     @Test
     void getHomeFeed_withCache_doesNotHitPostAPIForFirstPage() {
+        // Given
         UUID viewer = UUID.randomUUID();
         UUID followed = UUID.randomUUID();
         UUID postId = UUID.randomUUID();
@@ -120,19 +120,94 @@ public class FeedManagementIT {
         when(userAPI.getUserGroup(Set.of(followed))).thenReturn(Set.of(user(followed, false)));
         when(postAPI.getNumberOfPostsOfAuthorGroup(any())).thenReturn(1L);
 
+        // When
         TimelinePage page = feedAPI.getHomeFeed(viewer, null, 10);
 
+        // Then
         assertThat(page.items()).hasSize(1);
         assertThat(page.items().getFirst().post().postId()).isEqualTo(postId);
 
-        // Cache hit path — the posts module wasn't consulted for the first page.
-        org.mockito.Mockito.verify(postAPI, org.mockito.Mockito.never())
+        verify(postAPI, org.mockito.Mockito.never())
                 .fetchNewestPostsOfGivenUsers(any(), anyInt());
-        org.mockito.Mockito.verify(postAPI, org.mockito.Mockito.never())
+        verify(postAPI, org.mockito.Mockito.never())
                 .fetchNewestPostAfterDateAndId(any(), any(), any(), anyInt());
     }
 
+    @Test
+    void getHomeFeed_normalAndHotUsers_areMergedAndSortedByScore() {
+        // Given
+        UUID viewerId = UUID.randomUUID();
+        UUID normalId = UUID.randomUUID();
+        UUID hotId = UUID.randomUUID();
+        UserRecord viewer = user(viewerId, false);
+        UserRecord normalUser = user(normalId, false);
+        UserRecord hotUser = user(hotId, true);
+
+        when(userAPI.getUser(viewerId)).thenReturn(Optional.of(viewer));
+        when(userAPI.getUser(normalId)).thenReturn(Optional.of(normalUser));
+        when(userAPI.getUser(hotId)).thenReturn(Optional.of(hotUser));
+        when(userAPI.getFollowTargetIds(viewerId)).thenReturn(Set.of(normalId, hotId));
+        when(userAPI.getUserGroup(Set.of(normalId, hotId)))
+                .thenReturn(Set.of(normalUser, hotUser));
+
+        PostRecord normalPost = post(normalId, Instant.now());
+        System.out.println("normalPost: " + normalPost.id());
+        PostRecord hotPost = post(hotId, Instant.now());
+        System.out.println("hotPost: " + hotPost.id());
+
+        when(postAPI.fetchNewestPostsOfGivenUsers(eq(Set.of(normalId)), anyInt()))
+                .thenReturn(List.of(normalPost));
+        when(postAPI.fetchNewestPostsOfGivenUsers(eq(Set.of(hotId)), anyInt()))
+                .thenReturn(List.of(hotPost));
+        when(postAPI.getNumberOfPostsOfAuthorGroup(any())).thenReturn(2L);
+
+        // When
+        TimelinePage page = feedAPI.getHomeFeed(viewerId, null, 10);
+
+        // Then
+        assertThat(page.items()).hasSize(2);
+        assertThat(Objects.requireNonNull(page.items().getFirst().post().authorId())).isEqualTo(normalId);
+    }
+
+    @Test
+    void getUserFeed_paginatesWithCursor() {
+        UUID owner = UUID.randomUUID();
+        Instant base = Instant.now();
+
+        when(userAPI.getUser(owner)).thenReturn(Optional.of(user(owner, false)));
+        when(postAPI.getNumberOfPostsOfAuthor(owner)).thenReturn(25L);
+
+        List<PostRecord> firstPage = List.of(
+                post(owner, base),
+                post(owner, base.minusSeconds(10)),
+                post(owner, base.minusSeconds(20))
+        );
+        when(postAPI.getUserNewestPosts(eq(owner), eq(3))).thenReturn(firstPage);
+
+        TimelinePage page = feedAPI.getUserFeed(owner, null, 2);
+
+        assertThat(page.items()).hasSize(2);
+        assertThat(page.nextCursor()).isNotNull();
+        assertThat(page.totalItems()).isEqualTo(25);
+
+        // Follow-up request uses the cursor and hits the "after cursor" path.
+        Instant cursorTime = page.items().get(1).post().createdAt().truncatedTo(ChronoUnit.MILLIS);
+        UUID cursorPostId = page.items().get(1).post().postId();
+        when(postAPI.getUserPostsAfterCursor(eq(owner), eq(cursorTime), eq(cursorPostId), eq(3)))
+                .thenReturn(List.of(post(owner, base.minusSeconds(30))));
+
+        TimelinePage next = feedAPI.getUserFeed(owner, page.nextCursor(), 2);
+
+        verify(postAPI).getUserPostsAfterCursor(eq(owner), eq(cursorTime), eq(cursorPostId), eq(3));
+
+        assertThat(next.items()).hasSize(1);
+        assertThat(next.nextCursor()).isNull();
+    }
+
+    // ---- helpers ----------------------------------------------------------------------------------------------------
+
     private static PostRecord post(UUID authorId, Instant createdAt) {
+        //noinspection DataFlowIssue
         return new PostRecord(
                 UUID.randomUUID(),
                 authorId,
