@@ -17,7 +17,7 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
-class IdempotencyKey {
+public class IdempotencyKey {
 
     @Column(name = "author_id")
     private UUID authorId;

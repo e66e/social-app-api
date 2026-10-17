@@ -31,13 +31,13 @@ public abstract class AbstractIdempotencyRecord implements Persistable<Idempoten
     @Enumerated(EnumType.STRING)
     private IdempotencyStatus status;
 
-    @Column(name = "resource_id", unique = true) // nullable?
+    @Column(name = "resource_id", unique = true, nullable = true)
     private UUID resourceId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = true)
     private Instant updatedAt;
 
     @PrePersist

@@ -1,105 +1,124 @@
 package dev.e66e.social_app_api.posts.idempotency;
 
-import org.springframework.context.annotation.Lazy;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
-import org.springframework.web.server.ResponseStatusException;
+//import org.springframework.context.annotation.Lazy;
+//import org.springframework.dao.DataIntegrityViolationException;
+//import org.springframework.http.HttpStatus;
+//import org.springframework.stereotype.Service;
+//import org.springframework.transaction.annotation.Propagation;
+//import org.springframework.transaction.annotation.Transactional;
+//import org.springframework.transaction.support.TransactionSynchronization;
+//import org.springframework.transaction.support.TransactionSynchronizationManager;
+//import org.springframework.web.server.ResponseStatusException;
+//
+//import java.util.Optional;
+//import java.util.UUID;
+//import java.util.function.Supplier;
+//
+//@Service
+//class PostIdempotencyManagement implements PostIdempotencyAPI {
+//
+//    private final PostCreationRequestRepository postCreationRequestRepository;
+//    private final PostIdempotencyManagement self;
+//
+//    public PostIdempotencyManagement(PostCreationRequestRepository postCreationRequestRepository,
+//                                     @Lazy PostIdempotencyManagement self) {
+//        this.postCreationRequestRepository = postCreationRequestRepository;
+//        this.self = self;
+//    }
+//
+//    @Override
+//    @Transactional
+//    public UUID executeIdempotent(UUID authorId,
+//                                          String idempotencyKey,
+//                                          String requestHash,
+//                                          Supplier<UUID> callback) {
+//
+//        var pcqOpt = this.tryReserve(authorId, idempotencyKey, requestHash);
+//        if (pcqOpt.isEmpty()) {
+//            PostCreationRequest pcr
+//                    = this.postCreationRequestRepository.findById_authorIdAndId_idempotencyKey(authorId, idempotencyKey)
+//                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+//                            "Request exists but was not found.")
+//                    );
+//
+//
+//            return switch (pcr.getStatus()) {
+//                case PostCreationStatus.IN_PROGRESS -> throw new ResponseStatusException(HttpStatus.CONFLICT,
+//                        "Other thread handles request with given body and idempotency key.");
+//
+//                case PostCreationStatus.COMPLETED -> {
+//                    if (!pcr.getRequestHash().equals(requestHash)) {
+//                        throw new ResponseStatusException(HttpStatus.CONFLICT,
+//                                "Idempotency key used for post with id: " + pcr.getPostId());
+//                    }
+//                    yield pcr.getPostId();
+//                }
+//            };
+//        }
+//
+//        PostCreationRequest pcr = pcqOpt.get();
+//
+//        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+//            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+//                @Override
+//                public void afterCompletion(int status) {
+//                    if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
+//                        self.deleteReservation(authorId, idempotencyKey);
+//                    }
+//                }
+//            });
+//        }
+//
+//        try {
+//            UUID id = callback.get();
+//            pcr.markCompleted(id);
+//            this.postCreationRequestRepository.saveAndFlush(pcr);
+//
+//            return pcr.getPostId();
+//        } catch (RuntimeException e) {
+//            self.deleteReservation(authorId, idempotencyKey);
+//            throw e;
+//        }
+//    }
+//
+//    public Optional<PostCreationRequest> tryReserve(UUID authorId, String key, String hash) {
+//        try {
+//            var reserved = self.reserve(authorId, key, hash);
+//            return Optional.of(reserved);
+//        } catch (DataIntegrityViolationException e) {
+//            return Optional.empty();
+//        }
+//    }
+//
+//    @Transactional(propagation = Propagation.REQUIRES_NEW)
+//    public PostCreationRequest reserve(UUID authorId, String key, String hash) {
+//        PostCreationRequest pcq = new PostCreationRequest(authorId, key, hash);
+//        return this.postCreationRequestRepository.saveAndFlush(pcq);
+//    }
+//
+//    @Transactional(propagation = Propagation.REQUIRES_NEW)
+//    public void deleteReservation(UUID authorId, String idempotencyKey) {
+//        postCreationRequestRepository
+//                .findById_authorIdAndId_idempotencyKey(authorId, idempotencyKey)
+//                .ifPresent(postCreationRequestRepository::delete);
+//    }
+//}
 
-import java.util.Optional;
+import dev.e66e.social_app_api.idempotency.AbstractIdempotencyManagement;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+
 import java.util.UUID;
-import java.util.function.Supplier;
 
 @Service
-class PostIdempotencyManagement implements PostIdempotencyAPI {
+class PostIdempotencyManagement extends AbstractIdempotencyManagement<PostCreationRequest> implements PostIdempotencyAPI {
 
-    private final PostCreationRequestRepository postCreationRequestRepository;
-    private final PostIdempotencyManagement self;
-
-    public PostIdempotencyManagement(PostCreationRequestRepository postCreationRequestRepository,
-                                     @Lazy PostIdempotencyManagement self) {
-        this.postCreationRequestRepository = postCreationRequestRepository;
-        this.self = self;
+    PostIdempotencyManagement(PostCreationRequestRepository repository, PlatformTransactionManager txManager) {
+        super(repository, txManager, "post");
     }
 
     @Override
-    @Transactional
-    public UUID executeIdempotent(UUID authorId,
-                                          String idempotencyKey,
-                                          String requestHash,
-                                          Supplier<UUID> callback) {
-
-        var pcqOpt = this.tryReserve(authorId, idempotencyKey, requestHash);
-        if (pcqOpt.isEmpty()) {
-            PostCreationRequest pcr
-                    = this.postCreationRequestRepository.findById_authorIdAndId_idempotencyKey(authorId, idempotencyKey)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                            "Request exists but was not found.")
-                    );
-
-
-            return switch (pcr.getStatus()) {
-                case PostCreationStatus.IN_PROGRESS -> throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        "Other thread handles request with given body and idempotency key.");
-
-                case PostCreationStatus.COMPLETED -> {
-                    if (!pcr.getRequestHash().equals(requestHash)) {
-                        throw new ResponseStatusException(HttpStatus.CONFLICT,
-                                "Idempotency key used for post with id: " + pcr.getPostId());
-                    }
-                    yield pcr.getPostId();
-                }
-            };
-        }
-
-        PostCreationRequest pcr = pcqOpt.get();
-
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCompletion(int status) {
-                    if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
-                        self.deleteReservation(authorId, idempotencyKey);
-                    }
-                }
-            });
-        }
-
-        try {
-            UUID id = callback.get();
-            pcr.markCompleted(id);
-            this.postCreationRequestRepository.saveAndFlush(pcr);
-
-            return pcr.getPostId();
-        } catch (RuntimeException e) {
-            self.deleteReservation(authorId, idempotencyKey);
-            throw e;
-        }
-    }
-
-    public Optional<PostCreationRequest> tryReserve(UUID authorId, String key, String hash) {
-        try {
-            var reserved = self.reserve(authorId, key, hash);
-            return Optional.of(reserved);
-        } catch (DataIntegrityViolationException e) {
-            return Optional.empty();
-        }
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public PostCreationRequest reserve(UUID authorId, String key, String hash) {
-        PostCreationRequest pcq = new PostCreationRequest(authorId, key, hash);
-        return this.postCreationRequestRepository.saveAndFlush(pcq);
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void deleteReservation(UUID authorId, String idempotencyKey) {
-        postCreationRequestRepository
-                .findById_authorIdAndId_idempotencyKey(authorId, idempotencyKey)
-                .ifPresent(postCreationRequestRepository::delete);
+    protected PostCreationRequest newRecord(UUID authorId, String idempotencyKey, String requestHash) {
+        return new PostCreationRequest(authorId, idempotencyKey, requestHash);
     }
 }

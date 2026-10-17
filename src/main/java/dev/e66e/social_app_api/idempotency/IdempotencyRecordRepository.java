@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @NoRepositoryBean
-interface IdempotencyRecordRepository<E extends AbstractIdempotencyRecord>
+public interface IdempotencyRecordRepository<E extends AbstractIdempotencyRecord>
         extends JpaRepository<E, IdempotencyKey> {
 
     @Query("""

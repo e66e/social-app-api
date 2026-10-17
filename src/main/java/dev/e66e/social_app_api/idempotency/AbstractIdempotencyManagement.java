@@ -14,7 +14,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-abstract class AbstractIdempotencyManagement<E extends AbstractIdempotencyRecord>
+public abstract class AbstractIdempotencyManagement<E extends AbstractIdempotencyRecord>
         implements IdempotencyInternalAPI {
 
     private final IdempotencyRecordRepository<E> repository;
@@ -90,7 +90,7 @@ abstract class AbstractIdempotencyManagement<E extends AbstractIdempotencyRecord
         }
     }
 
-    private Optional<E> tryReserve(UUID authorId, String key, String hash) {
+    protected Optional<E> tryReserve(UUID authorId, String key, String hash) {
         try {
             E record = this.requiresNewTx.execute(_ -> {
                 E fresh = newRecord(authorId, key, hash);
@@ -102,7 +102,7 @@ abstract class AbstractIdempotencyManagement<E extends AbstractIdempotencyRecord
         }
     }
 
-    private void deleteReservation(UUID authorId, String key) {
+    void deleteReservation(UUID authorId, String key) {
         this.requiresNewTx.executeWithoutResult(_ ->
             this.repository.findByIdempotencyKey(authorId, key)
                     .ifPresent(this.repository::delete));
