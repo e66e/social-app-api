@@ -4,6 +4,7 @@ import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
+import org.hibernate.validator.constraints.Length;
 import org.springframework.data.domain.Persistable;
 
 import java.io.Serializable;
@@ -25,6 +26,7 @@ class PostCreationRequest implements Persistable<PostCreationRequestId> {
     private boolean isNew = true;
 
     @Column(name = "request_hash", nullable = false)
+    @Length(min = 32, max = 64)
     private String requestHash;
 
     @Column(name = "status", nullable = false)
@@ -44,7 +46,6 @@ class PostCreationRequest implements Persistable<PostCreationRequestId> {
     PostCreationRequest(UUID authorId, String idempotencyKey, String requestHash) {
         this.id = new PostCreationRequestId(authorId, idempotencyKey);
         this.requestHash = requestHash;
-//        this.isNew = true;
         this.status = PostCreationStatus.IN_PROGRESS;
     }
 

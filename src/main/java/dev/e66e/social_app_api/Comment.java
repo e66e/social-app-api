@@ -1,4 +1,4 @@
-package dev.e66e.social_app_api.comments.persistence;
+package dev.e66e.social_app_api;
 
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.proxy.HibernateProxy;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -20,15 +21,30 @@ public class Comment {
     @Column(unique = true, nullable = false)
     private UUID id;
 
-    @Column(name = "post_id", nullable = false)
+    @Column(name = "post_id", nullable = false, updatable = false)
     private UUID postId;
 
-    @Column(name = "content", nullable = false)
+    @Column(name = "content", nullable = false, updatable = false)
     private String content;
 
     @Column(name = "parent_comment_id")
-    @Nullable
     private UUID parentCommentId;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @Column(name = "updated_at")
+    private Instant updatedAt = null;
+
+    @PrePersist
+    void onPersist() {
+        this.createdAt = Instant.now();
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        this.updatedAt = Instant.now();
+    }
 
     @Override
     public final boolean equals(@Nullable Object o) {

@@ -1,0 +1,16 @@
+package dev.e66e.social_app_api.comments;
+
+import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotBlank;
+
+import java.time.Instant;
+import java.util.UUID;
+
+public record CommentResponse(
+        UUID id,
+        UUID postId,
+        @NotBlank String content,
+        @Nullable UUID parentCommentId,
+        Instant datePublished,
+        @Nullable Instant dateUpdated
+) {}

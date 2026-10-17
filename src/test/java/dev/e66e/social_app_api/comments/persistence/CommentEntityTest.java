@@ -1,5 +1,7 @@
 package dev.e66e.social_app_api.comments.persistence;
 
+import dev.e66e.social_app_api.Comment;
+import dev.e66e.social_app_api.CommentRepository;
 import dev.e66e.social_app_api.PostgresTestcontainers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
