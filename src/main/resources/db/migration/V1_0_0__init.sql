@@ -4,7 +4,7 @@ CREATE TABLE comments
     post_id           UUID         NOT NULL,
     content           VARCHAR(255) NOT NULL,
     parent_comment_id UUID         NOT NULL,
-    CONSTRAINT pk_comments PRIMARY KEY (id)
+    CONSTRAINT pk_comments PRIMARY KEY (id, post_id)
 );
 
 CREATE TABLE posts

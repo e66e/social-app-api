@@ -36,8 +36,8 @@ class Post {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @Column(name = "updated_at")
     @Nullable
+    @Column(name = "updated_at")
     private Instant updatedAt;
 
     public Post(UUID authorId, String textContent, String imageUrl) {

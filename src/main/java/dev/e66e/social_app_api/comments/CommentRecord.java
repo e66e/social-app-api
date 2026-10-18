@@ -11,6 +11,6 @@ public record CommentRecord(
         UUID postId,
         @NotBlank String content,
         @Nullable UUID parentCommentId,
-        Instant datePublished,
-        @Nullable Instant dateUpdated
+        Instant createdAt,
+        @Nullable Instant updatedAt
 ) {}

@@ -68,8 +68,8 @@ class PostIdempotencyManagementIT {
 
             assertEquals(IdempotencyStatus.COMPLETED, idempotencyRecord.getStatus());
             assertEquals(postId, idempotencyRecord.getResourceId());
-            assertEquals(authorId, idempotencyRecord.getId().getAuthorId());
-            assertEquals(idempotencyKey, idempotencyRecord.getId().getIdempotencyKey());
+            assertEquals(authorId, idempotencyRecord.getAuthorId());
+            assertEquals(idempotencyKey, idempotencyRecord.getIdempotencyKey());
             assertEquals(requestHash, idempotencyRecord.getRequestHash());
             assertNotNull(idempotencyRecord.getCreatedAt());
             assertNotNull(idempotencyRecord.getUpdatedAt());

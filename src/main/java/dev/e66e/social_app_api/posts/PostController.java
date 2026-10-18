@@ -27,7 +27,7 @@ class PostController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     PostResponse createPost(@RequestBody CreatePostRequest createPostRequest,
-                          @AuthenticationPrincipal Jwt jwt) {
+                            @AuthenticationPrincipal Jwt jwt) {
         UUID userId = UUID.fromString(Objects.requireNonNull(jwt.getSubject()));
 
         return this.postAPI.createPost(userId,

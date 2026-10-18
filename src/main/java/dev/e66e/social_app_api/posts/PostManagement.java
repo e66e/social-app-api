@@ -86,22 +86,6 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
         );
     }
 
-    private String createPostHash(UUID authorId, PostRequest postRequest) {
-        MessageDigest digest;
-        try {
-            digest = MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 should be available", e);
-        }
-
-        byte[] hash = digest.digest((authorId
-                    + "\n" + postRequest.content()
-                    + "\n" + postRequest.imageUrl())
-                .getBytes(StandardCharsets.UTF_8));
-
-        return HexFormat.of().formatHex(hash);
-    }
-
     @Override
     public Optional<PostRecord> getPostRecord(UUID id) {
         Optional<Post> post = this.postRepository.findById(id);
@@ -159,5 +143,21 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
     @Override
     public long getNumberOfPostsOfAuthor(UUID userId) {
         return this.postRepository.countByAuthorId(userId);
+    }
+
+    private String createPostHash(UUID authorId, PostRequest postRequest) {
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 should be available", e);
+        }
+
+        byte[] hash = digest.digest((authorId
+                + "\n" + postRequest.content()
+                + "\n" + postRequest.imageUrl())
+                .getBytes(StandardCharsets.UTF_8));
+
+        return HexFormat.of().formatHex(hash);
     }
 }

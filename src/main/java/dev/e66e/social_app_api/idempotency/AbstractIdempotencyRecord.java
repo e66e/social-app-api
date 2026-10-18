@@ -2,11 +2,9 @@ package dev.e66e.social_app_api.idempotency;
 
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
+import org.hibernate.validator.constraints.Length;
 import org.springframework.data.domain.Persistable;
 
 import java.time.Instant;
@@ -31,13 +29,13 @@ public abstract class AbstractIdempotencyRecord implements Persistable<Idempoten
     @Enumerated(EnumType.STRING)
     private IdempotencyStatus status;
 
-    @Column(name = "resource_id", unique = true, nullable = true)
+    @Column(name = "resource_id", unique = true)
     private UUID resourceId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @Column(name = "updated_at", nullable = true)
+    @Column(name = "updated_at")
     private Instant updatedAt;
 
     @PrePersist
@@ -67,6 +65,14 @@ public abstract class AbstractIdempotencyRecord implements Persistable<Idempoten
         this.status = IdempotencyStatus.COMPLETED;
     }
 
+    public UUID getAuthorId() {
+        return this.id.getAuthorId();
+    }
+
+    public String getIdempotencyKey() {
+        return this.id.getIdempotencyKey();
+    }
+
     @Override
     public boolean isNew() {
         return this.isNew;
@@ -91,5 +97,44 @@ public abstract class AbstractIdempotencyRecord implements Persistable<Idempoten
     @Override
     public final int hashCode() {
         return Objects.hash(id);
+    }
+}
+
+@Embeddable
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
+class IdempotencyKey {
+
+    @SuppressWarnings("JpaDataSourceORMInspection")
+    @Column(name = "author_id")
+    private UUID authorId;
+
+    @SuppressWarnings("JpaDataSourceORMInspection")
+    @Column(name = "idempotency_key")
+    @Length(min = 32, max = 64)
+    private String idempotencyKey;
+
+
+    @Override
+    @SuppressWarnings("ConstantValue")
+    public final boolean equals(@Nullable Object o) {
+        if (this == o) return true;
+        if (o == null) return false;
+        Class<?> oEffectiveClass = o instanceof HibernateProxy
+                ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass()
+                : o.getClass();
+        Class<?> thisEffectiveClass = this instanceof HibernateProxy
+                ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass()
+                : this.getClass();
+        if (thisEffectiveClass != oEffectiveClass) return false;
+        IdempotencyKey that = (IdempotencyKey) o;
+        return getAuthorId() != null && Objects.equals(getAuthorId(), that.getAuthorId())
+                && getIdempotencyKey() != null && Objects.equals(getIdempotencyKey(), that.getIdempotencyKey());
+    }
+
+    @Override
+    public final int hashCode() {
+        return Objects.hash(authorId, idempotencyKey);
     }
 }

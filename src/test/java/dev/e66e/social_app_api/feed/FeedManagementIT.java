@@ -1,6 +1,7 @@
 package dev.e66e.social_app_api.feed;
 
 import dev.e66e.social_app_api.RedisTestcontainersInitializer;
+import dev.e66e.social_app_api.posts.PostResponse;
 import dev.e66e.social_app_api.posts.PostInternalAPI;
 import dev.e66e.social_app_api.posts.PostRecord;
 import dev.e66e.social_app_api.users.UserInternalAPI;
@@ -102,7 +103,7 @@ public class FeedManagementIT {
         UUID postId = UUID.randomUUID();
 
         FeedItem cachedItem = new FeedItem(
-                new dev.e66e.social_app_api.posts.PostResponse(
+                new PostResponse(
                         postId, followed, "bob",
                         Instant.now(), Instant.now(), "cached", null
                 ),

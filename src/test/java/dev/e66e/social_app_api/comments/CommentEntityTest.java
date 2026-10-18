@@ -1,7 +1,5 @@
-package dev.e66e.social_app_api.comments.persistence;
+package dev.e66e.social_app_api.comments;
 
-import dev.e66e.social_app_api.Comment;
-import dev.e66e.social_app_api.CommentRepository;
 import dev.e66e.social_app_api.PostgresTestcontainers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,9 +23,10 @@ class CommentEntityTest {
     @DisplayName("Testing Post entity mapping with database")
     void commentEntityTest() {
         Comment comment = new Comment();
-        UUID postUuid = UUID.randomUUID();
+        UUID postUUID = UUID.randomUUID();
+        UUID commentUUID = UUID.randomUUID();
 
-        comment.setPostId(postUuid);
+        comment.setId(new CommentId(commentUUID, postUUID));
         comment.setContent("Test content");
         comment.setParentCommentId(null);
 
@@ -36,7 +35,7 @@ class CommentEntityTest {
         assertNotNull(dbComment);
         assertAll(() -> {
             assertNotNull(dbComment.getId());
-           assertEquals(postUuid, dbComment.getPostId());
+           assertEquals(postUUID, dbComment.getId().getPostId());
            assertEquals("Test content", dbComment.getContent());
            assertNull(dbComment.getParentCommentId());
         });
