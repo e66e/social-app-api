@@ -30,12 +30,29 @@ interface CommentRepository extends JpaRepository<Comment, CommentId> {
 
     @Query("""
             select c from Comment c
-                where c.id.postId = :postId and
-                    (c.createdAt < :createdAt or (
-                                c.createdAt = :createdAt and c.id.id < :commentId))""")
+            where c.id.postId = :postId and
+                (c.createdAt < :createdAt or (
+                    c.createdAt = :createdAt and c.id.id < :commentId))
+            order by c.createdAt, c.id.id""")
     List<Comment> findAllPostCommentAfterCursor(@Param("postId") UUID postId,
                                                 @Param("commentId") UUID commentId,
-                                                @Param("cursorsPostId") UUID cursorsPostId,
+                                                @Param("createdAt") Instant createdAt,
+                                                PageRequest pageable);
+
+    @Query("""
+            select c from Comment c
+            where c.authorId = :userId
+            order by c.createdAt desc""")
+    List<Comment> findAllUserCommentByNewest(@Param("userId") UUID userId, PageRequest pageable);
+
+    @Query("""
+            select c from Comment c
+            where c.authorId = :authorId and
+                (c.createdAt < :createdAt or (
+                    c.createdAt = :createdAt and c.id.id < :commentId))
+            order by c.createdAt, c.id.id""")
+    List<Comment> findAllUserCommentAfterCursor(@Param("authorId") UUID authorId,
+                                                @Param("updateId") UUID commentId,
                                                 @Param("createdAt") Instant createdAt,
                                                 PageRequest pageable);
 }

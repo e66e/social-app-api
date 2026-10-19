@@ -11,9 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.*;
 
@@ -26,6 +23,7 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
     private final PostIdempotencyAPI postIdempotencyAPI;
     private final UserInternalAPI userAPI;
     private final ApplicationEventPublisher eventPublisher;
+    private final PostRequestHasher hasher;
 
     @Override
     public Optional<PostResponse> getPost(UUID id) {
@@ -54,7 +52,7 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
     @Transactional
     public PostResponse createPost(UUID authorId, String idempotencyKey, PostRequest postRequest) {
         // TODO try to add agent which will check if post contents are harmful
-        String postHash = this.createPostHash(authorId, postRequest);
+        String postHash = this.hasher.createPostHash(authorId, postRequest);
 
         UUID createdPostId = this.postIdempotencyAPI.executeIdempotent(authorId, idempotencyKey, postHash, () -> {
             Post newPost = new Post(authorId, postRequest.content(),
@@ -143,21 +141,5 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
     @Override
     public long getNumberOfPostsOfAuthor(UUID userId) {
         return this.postRepository.countByAuthorId(userId);
-    }
-
-    private String createPostHash(UUID authorId, PostRequest postRequest) {
-        MessageDigest digest;
-        try {
-            digest = MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 should be available", e);
-        }
-
-        byte[] hash = digest.digest((authorId
-                + "\n" + postRequest.content()
-                + "\n" + postRequest.imageUrl())
-                .getBytes(StandardCharsets.UTF_8));
-
-        return HexFormat.of().formatHex(hash);
     }
 }

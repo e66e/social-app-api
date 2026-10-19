@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Objects;
 import java.util.UUID;
 
-@RestController("/onboarding")
+@RestController("/api/onboarding")
 @RequiredArgsConstructor
 class OnboardingController {
 

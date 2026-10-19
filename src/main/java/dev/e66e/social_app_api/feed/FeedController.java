@@ -10,7 +10,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/feed")
+@RequestMapping("/api/feed")
 @RequiredArgsConstructor
 class FeedController {
 

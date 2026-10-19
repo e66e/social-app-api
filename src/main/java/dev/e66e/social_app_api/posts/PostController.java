@@ -7,11 +7,12 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/posts")
+@RequestMapping("/api/posts")
 @RequiredArgsConstructor
 class PostController {
 
@@ -28,10 +29,14 @@ class PostController {
     @ResponseStatus(HttpStatus.CREATED)
     PostResponse createPost(@RequestBody CreatePostRequest createPostRequest,
                             @AuthenticationPrincipal Jwt jwt) {
-        UUID userId = UUID.fromString(Objects.requireNonNull(jwt.getSubject()));
+        UUID authorId = UUID.fromString(Objects.requireNonNull(jwt.getSubject()));
 
-        return this.postAPI.createPost(userId,
+        return this.postAPI.createPost(authorId,
                 createPostRequest.idempotencyKey(),
                 createPostRequest.postRequest());
+    }
+
+    List<PostResponse> getUserPosts(@PathVariable UUID userId) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }

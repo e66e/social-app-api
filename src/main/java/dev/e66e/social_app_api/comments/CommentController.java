@@ -1,16 +1,22 @@
 package dev.e66e.social_app_api.comments;
 
+import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/comment")
+@RequestMapping("/api/comments")
 @RequiredArgsConstructor
 class CommentController {
 
@@ -26,22 +32,39 @@ class CommentController {
 
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public List<CommentResponse> getPostComments(@PathVariable("id") UUID postId,
-                                                 @RequestParam(name = "cursor", required = false)
-                                                 String cursor,
-                                                 @RequestParam(name = "limit", defaultValue = "10")
-                                                 int limit) {
+    public CommentsPageResponse getPostComments(@PathVariable("id") UUID postId,
+                                                @RequestParam(name = "cursor", required = false)
+                                                String cursor,
+                                                @RequestParam(name = "limit", defaultValue = "10") @Min(1)
+                                                int limit) {
         return this.commentAPI.getPostComments(postId, cursor, limit);
     }
 
-    public List<CommentResponse> getUserComments(@PathVariable("id") UUID userId) {
-//        return this.commentAPI.getUserComments(userId);
-        throw new UnsupportedOperationException("Not supported yet.");
+    @GetMapping("/users/{userId}")
+    @ResponseStatus(HttpStatus.OK)
+    public CommentsPageResponse getUserComments(@PathVariable("userId") UUID userId,
+                                                @RequestParam(name = "cursor", required = false)
+                                                String cursor,
+                                                @RequestParam(defaultValue = "5")
+                                                int limit) {
+        return this.commentAPI.getUserComments(userId, cursor, limit);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.OK)
-    public CommentResponse postComment(@RequestBody @Valid CommentRequest commentRequest) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public CommentResponse postComment(@RequestBody @Valid CreateCommentRequest commentRequest,
+                                       @AuthenticationPrincipal Jwt jwt) {
+        UUID authorId = UUID.fromString(Objects.requireNonNull(jwt.getSubject()));
+
+        return this.commentAPI.postComment(authorId,
+                commentRequest.idempotencyKey(),
+                commentRequest.commentRequest());
+    }
+
+    @ExceptionHandler({ConstraintViolationException.class, HandlerMethodValidationException.class})
+    public ResponseEntity<String> handleConstraintViolationException(Exception e) {
+        return ResponseEntity
+                .badRequest()
+                .body(e.getMessage());
     }
 }

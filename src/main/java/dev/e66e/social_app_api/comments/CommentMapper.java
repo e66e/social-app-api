@@ -14,4 +14,12 @@ interface CommentMapper {
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")
     CommentResponse commentToCommentResponse(Comment comment);
+
+    @Mapping(target = "id", source = "id.id")
+    @Mapping(target = "postId", source = "id.postId")
+    @Mapping(target = "parentCommentId", source = "parentCommentId")
+    @Mapping(target = "content", source = "content")
+    @Mapping(target = "createdAt", source = "createdAt")
+    @Mapping(target = "updatedAt", source = "updatedAt")
+    CommentRecord commentToCommentRecord(Comment comment);
 }

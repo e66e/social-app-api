@@ -46,9 +46,9 @@ spring:
     events:
       republish-outstanding-events-on-restart: true
 
-server:
-  servlet:
-    context-path: '/api'
+#server:
+#  servlet:
+#    context-path: '/api'
 
 feed:
   async:

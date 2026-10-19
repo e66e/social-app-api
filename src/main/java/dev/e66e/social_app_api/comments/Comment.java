@@ -19,6 +19,9 @@ class Comment {
     @EmbeddedId
     CommentId id;
 
+    @Column(name = "author_id", nullable = false, updatable = false)
+    private UUID authorId;
+
     @Nullable
     @Column(name = "parent_comment_id")
     private UUID parentCommentId;
@@ -43,9 +46,10 @@ class Comment {
         this.updatedAt = Instant.now();
     }
 
-    Comment(UUID id, UUID postId, @Nullable UUID parentCommentId, String content) {
-        this.id = new CommentId(id, postId);
+    Comment(UUID postId, UUID authorId, @Nullable UUID parentCommentId, String content) {
+        this.id = new CommentId(postId);
         this.parentCommentId = parentCommentId;
+        this.authorId = authorId;
         this.content = content;
     }
 
@@ -80,10 +84,15 @@ class Comment {
 class CommentId {
 
     @Column(name = "id")
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(name = "post_id")
     private UUID postId;
+
+    protected CommentId(UUID postId) {
+        this.postId = postId;
+    }
 
     @Override
     @SuppressWarnings("ConstantValue")

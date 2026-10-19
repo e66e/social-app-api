@@ -271,11 +271,6 @@ class FeedCachingWorker {
         }
 
         try {
-//            if (!self.tryClaim(eventId)) {
-//                redis.opsForStream().acknowledge(streamKey, consumerGroup, record.getId());
-//                return;
-//            }
-
             if (this.processedFeedEventRepository.existsById(eventId)) {
                 redis.opsForStream().acknowledge(streamKey, consumerGroup, record.getId());
                 return;
