@@ -3,6 +3,7 @@ package dev.e66e.social_app_api.posts;
 import dev.e66e.social_app_api.posts.idempotency.PostIdempotencyAPI;
 import dev.e66e.social_app_api.users.UserInternalAPI;
 import dev.e66e.social_app_api.users.UserRecord;
+import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
@@ -13,6 +14,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -85,6 +88,52 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
     }
 
     @Override
+    public PostsPageResponse getUsersPost(UUID userId,
+                                          @Nullable String cursor,
+                                          int limit) {
+        PostCursor pc = PostCursorCodec.parse(cursor);
+        List<Post> postsWithExtra = this.getUserNewestPosts(userId, pc, limit + 1);
+        String newCursor = null;
+
+        if (postsWithExtra.size() > limit) {
+            PostRecord pr = this.postMapper.postToPostRecord(
+                    postsWithExtra.get(postsWithExtra.size() - 2));
+            newCursor = PostCursorCodec.encode(pr);
+        }
+
+        Set<UUID> postAuthorIds = postsWithExtra.stream()
+                .map(Post::getAuthorId)
+                .collect(Collectors.toSet());
+
+        Set<UserRecord> users = this.userAPI.getUserGroup(postAuthorIds);
+
+        List<PostResponse> postResponses = postsWithExtra.stream()
+                .map(post -> new PostResponse(
+                        post.getId(),
+                        post.getAuthorId(),
+                        this.getUserPublicUsernameFromGroup(users, post.getAuthorId()),
+                        post.getCreatedAt(),
+                        post.getUpdatedAt(),
+                        post.getTextContent(),
+                        post.getImageUrl()
+                )).limit(limit).toList();
+
+        return new PostsPageResponse(
+                postResponses,
+                newCursor
+        );
+    }
+
+    private @Nullable String getUserPublicUsernameFromGroup(Set<UserRecord> group, UUID userId) {
+        return group.stream()
+                .filter(user -> user.id().equals(userId))
+                .findFirst()
+                .map(UserRecord::publicUsername)
+                .orElse(null);
+
+    }
+
+    @Override
     public Optional<PostRecord> getPostRecord(UUID id) {
         Optional<Post> post = this.postRepository.findById(id);
 
@@ -126,6 +175,17 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
         return posts.stream()
                 .map(this.postMapper::postToPostRecord)
                 .toList();
+    }
+
+    private List<Post> getUserNewestPosts(UUID userId,
+                                          @Nullable PostCursor cursor,
+                                          int limit) {
+        // TODO normalize limits on each cursor request
+        PageRequest pageRequest = PageRequest.of(0, limit);
+        if (cursor == null) {
+            return this.postRepository.findByAuthorIdOrderByCreatedAtDescIdDesc(userId, pageRequest);
+        }
+        return this.postRepository.findByCursor(userId, cursor.createdAt(), cursor.postId(), pageRequest);
     }
 
     @Override

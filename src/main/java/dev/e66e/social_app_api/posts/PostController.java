@@ -7,7 +7,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -36,7 +35,10 @@ class PostController {
                 createPostRequest.postRequest());
     }
 
-    List<PostResponse> getUserPosts(@PathVariable UUID userId) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    @GetMapping("/users/{userId}")
+    PostsPageResponse getUserPosts(@PathVariable("userId") UUID userId,
+                                   @RequestParam(value = "cursor", required = false) String cursor,
+                                   @RequestParam(value = "limit", defaultValue = "10") int limit) {
+        return this.postAPI.getUsersPost(userId, cursor, limit);
     }
 }

@@ -108,7 +108,6 @@ class FeedManagement implements FeedExternalAPI, FeedInternalAPI {
             Set<UUID> allFollowTargetIds = this.userAPI.getFollowTargetIds(viewer.id());
             GroupedFollowTargets groupedFollowTargets = this.groupFollowTargets(allFollowTargetIds);
 
-
             FeedSlice normalFeedSlice = this.getNormalHomeFeedSlice(viewer.id(), groupedFollowTargets.normalUsers(),
                     pageCursor, pageSize);
 
