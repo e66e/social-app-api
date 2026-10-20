@@ -20,6 +20,7 @@ class CommentManagement implements CommentInternalAPI, CommentExternalAPI {
     private final CommentIdempotencyAPI commentIdempotencyAPI;
     private final CommentMapper mapper;
     private final CommentRequestHasher hasher;
+    private final CommentsProperties properties;
 
     @Override
     public Optional<CommentResponse> getComment(UUID commentId, UUID postId) {
@@ -30,23 +31,26 @@ class CommentManagement implements CommentInternalAPI, CommentExternalAPI {
 
     @Override
     public CommentsPageResponse getPostComments(UUID postId, @Nullable String cursor, int limit) {
+        int normalizedLimit = this.normalizeLimit(limit);
         CommentCursor cc = CommentCursorCodec.parse(cursor);
-        List<Comment> postComments = this.fetchPostComments(postId, cc, limit + 1);
-        return this.createCommentsPageResponse(postComments, limit);
+        List<Comment> postComments = this.fetchPostComments(postId, cc, normalizedLimit + 1);
+        return this.createCommentsPageResponse(postComments, normalizedLimit);
     }
 
     @Override
     public CommentsPageResponse getUserComments(UUID userId, @Nullable String cursor, int limit) {
+        int normalizedLimit = this.normalizeLimit(limit);
         CommentCursor cc = CommentCursorCodec.parse(cursor);
-        List<Comment> comments = this.fetchUserComments(userId, cc, limit + 1);
+        List<Comment> comments = this.fetchUserComments(userId, cc, normalizedLimit + 1);
 
-        return this.createCommentsPageResponse(comments, limit);
+        return this.createCommentsPageResponse(comments, normalizedLimit);
     }
 
     private CommentsPageResponse createCommentsPageResponse(List<Comment> commentsWithExtra, int originalLimit) {
         String newCursor = null;
+        int normalizedLimit = this.normalizeLimit(originalLimit);
 
-        if (commentsWithExtra.size() > originalLimit) {
+        if (commentsWithExtra.size() > normalizedLimit) {
             CommentRecord cr = this.mapper.commentToCommentRecord(
                     commentsWithExtra.get(commentsWithExtra.size() - 2));
             newCursor = CommentCursorCodec.encode(cr);
@@ -55,10 +59,17 @@ class CommentManagement implements CommentInternalAPI, CommentExternalAPI {
         return new CommentsPageResponse(
                 commentsWithExtra.stream()
                         .map(this.mapper::commentToCommentResponse)
-                        .limit(originalLimit)
+                        .limit(normalizedLimit)
                         .toList(),
                 newCursor
         );
+    }
+
+    private int normalizeLimit(int limit) {
+        if (limit < 1 || limit > this.properties.getMaxPageSize()) {
+            return this.properties.getDefaultPageSize();
+        }
+        return limit;
     }
 
     @Override
@@ -88,7 +99,8 @@ class CommentManagement implements CommentInternalAPI, CommentExternalAPI {
     }
 
     private List<Comment> fetchPostComments(UUID postId, @Nullable CommentCursor cursor, int limit) {
-        PageRequest pageRequest = PageRequest.of(0, limit);
+        int normalizedLimit = this.normalizeLimit(limit);
+        PageRequest pageRequest = PageRequest.of(0, normalizedLimit);
         if (cursor == null) {
             return this.repository.findAllPostCommentByNewest(postId, pageRequest);
         }
@@ -101,7 +113,8 @@ class CommentManagement implements CommentInternalAPI, CommentExternalAPI {
     }
 
     private List<Comment> fetchUserComments(UUID userId, @Nullable CommentCursor cursor, int limit) {
-        PageRequest pageRequest = PageRequest.of(0, limit);
+        int normalizedLimit = this.normalizeLimit(limit);
+        PageRequest pageRequest = PageRequest.of(0, normalizedLimit);
         if (cursor == null) {
             return this.repository.findAllUserCommentByNewest(userId, pageRequest);
         }

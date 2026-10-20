@@ -79,3 +79,11 @@ feed:
   default-page-size: 5
   home-feed-ttl-in-minutes: 5
   max-page-size: 20
+
+posts:
+  default-page-size: 10
+  max-page-size: 25
+
+comments:
+  default-page-size: 10
+  max-page-size: 30

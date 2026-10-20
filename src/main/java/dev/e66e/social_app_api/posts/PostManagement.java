@@ -27,6 +27,7 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
     private final UserInternalAPI userAPI;
     private final ApplicationEventPublisher eventPublisher;
     private final PostRequestHasher hasher;
+    private final PostsProperties properties;
 
     @Override
     public Optional<PostResponse> getPost(UUID id) {
@@ -91,11 +92,12 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
     public PostsPageResponse getUsersPost(UUID userId,
                                           @Nullable String cursor,
                                           int limit) {
+        int normalizedLimit = this.normalizeLimit(limit);
         PostCursor pc = PostCursorCodec.parse(cursor);
-        List<Post> postsWithExtra = this.getUserNewestPosts(userId, pc, limit + 1);
+        List<Post> postsWithExtra = this.getUserNewestPosts(userId, pc, normalizedLimit + 1);
         String newCursor = null;
 
-        if (postsWithExtra.size() > limit) {
+        if (postsWithExtra.size() > normalizedLimit) {
             PostRecord pr = this.postMapper.postToPostRecord(
                     postsWithExtra.get(postsWithExtra.size() - 2));
             newCursor = PostCursorCodec.encode(pr);
@@ -116,7 +118,7 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
                         post.getUpdatedAt(),
                         post.getTextContent(),
                         post.getImageUrl()
-                )).limit(limit).toList();
+                )).limit(normalizedLimit).toList();
 
         return new PostsPageResponse(
                 postResponses,
@@ -142,7 +144,8 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
 
     @Override
     public List<PostRecord> fetchNewestPostsOfGivenUsers(Set<UUID> userIds, int fetchSize) {
-        PageRequest pageRequest = PageRequest.of(0, fetchSize);
+        int normalizedLimit = this.normalizeLimit(fetchSize);
+        PageRequest pageRequest = PageRequest.of(0, normalizedLimit);
         List<Post> posts = this.postRepository.findByAuthorIdInOrderByCreatedAtDescIdDesc(userIds, pageRequest);
 
         return posts.stream()
@@ -153,7 +156,8 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
     @Override
     public List<PostRecord> fetchNewestPostAfterDateAndId(Set<UUID> userIds, Instant createdAt,
                                                           UUID postId, int fetchSize) {
-        PageRequest pageRequest = PageRequest.of(0, fetchSize);
+        int normalizedLimit = this.normalizeLimit(fetchSize);
+        PageRequest pageRequest = PageRequest.of(0, normalizedLimit);
         List<Post> posts = this.postRepository
                 .findHomePageByCreatedAtAndPostId(userIds, createdAt, postId, pageRequest);
 
@@ -169,7 +173,8 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
 
     @Override
     public List<PostRecord> getUserNewestPosts(UUID userId, int limit) {
-        PageRequest pageRequest = PageRequest.of(0, limit);
+        int normalizedLimit = this.normalizeLimit(limit);
+        PageRequest pageRequest = PageRequest.of(0, normalizedLimit);
         List<Post> posts = this.postRepository.findByAuthorIdOrderByCreatedAtDescIdDesc(userId, pageRequest);
 
         return posts.stream()
@@ -180,12 +185,19 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
     private List<Post> getUserNewestPosts(UUID userId,
                                           @Nullable PostCursor cursor,
                                           int limit) {
-        // TODO normalize limits on each cursor request
-        PageRequest pageRequest = PageRequest.of(0, limit);
+        int normalizedLimit = this.normalizeLimit(limit);
+        PageRequest pageRequest = PageRequest.of(0, normalizedLimit);
         if (cursor == null) {
             return this.postRepository.findByAuthorIdOrderByCreatedAtDescIdDesc(userId, pageRequest);
         }
         return this.postRepository.findByCursor(userId, cursor.createdAt(), cursor.postId(), pageRequest);
+    }
+
+    private int normalizeLimit(int limit) {
+        if (limit < 1 || limit > this.properties.getMaxPageSize()) {
+            return this.properties.getDefaultPageSize();
+        }
+        return limit;
     }
 
     @Override
