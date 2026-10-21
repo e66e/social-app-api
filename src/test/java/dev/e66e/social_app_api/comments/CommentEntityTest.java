@@ -22,6 +22,7 @@ class CommentEntityTest {
     @Transactional
     @DisplayName("Testing Post entity mapping with database")
     void commentEntityTest() {
+        // Given
         Comment comment = new Comment();
         UUID postUUID = UUID.randomUUID();
         UUID commentUUID = UUID.randomUUID();
@@ -30,8 +31,10 @@ class CommentEntityTest {
         comment.setContent("Test content");
         comment.setParentCommentId(null);
 
+        // When
         Comment dbComment = commentRepository.save(comment);
 
+        // Then
         assertNotNull(dbComment);
         assertAll(() -> {
             assertNotNull(dbComment.getId());

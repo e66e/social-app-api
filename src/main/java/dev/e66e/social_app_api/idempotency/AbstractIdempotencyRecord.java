@@ -22,7 +22,7 @@ public abstract class AbstractIdempotencyRecord implements Persistable<Idempoten
     @Transient
     private boolean isNew = true;
 
-    @Column(name = "request_hash", nullable = false, length = 32)
+    @Column(name = "request_hash", nullable = false, length = 64)
     private String requestHash;
 
     @Column(name = "status", nullable = false)

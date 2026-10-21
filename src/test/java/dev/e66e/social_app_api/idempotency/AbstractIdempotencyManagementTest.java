@@ -40,7 +40,7 @@ class AbstractIdempotencyManagementTest {
     final UUID authorId = UUID.randomUUID();
     final UUID resourceId = UUID.randomUUID();
     final String idempotencyKey = "idempotencyKeyidempotencyKeyidempotencyKeyidempotencyKey";
-    final String requestHash = "requestHashrequestHashrequestHashrequestHashrequestHashrequestHash";
+    final String requestHash = "requestHashrequestHashrequestHashrequestHashrequestHashrequestHa";
 
     @BeforeEach
     void setUp() {
@@ -113,7 +113,7 @@ class AbstractIdempotencyManagementTest {
             // Then / When
             ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                     () -> subject.executeIdempotent(authorId, idempotencyKey,
-                            "differentHashdifferentHashdifferentHash", () -> resourceId));
+                            "requestHashrequestHashrequestHashrequestHashrequestHashrequestH4", () -> resourceId));
 
             assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
         }

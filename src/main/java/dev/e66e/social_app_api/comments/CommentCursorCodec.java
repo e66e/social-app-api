@@ -36,12 +36,12 @@ class CommentCursorCodec {
     }
 
     static String encode(CommentRecord commentRecord) {
-        return encode(commentRecord.postId(), commentRecord.id(), commentRecord.createdAt());
+        return encode(commentRecord.id(), commentRecord.postId(), commentRecord.createdAt());
     }
 
-    private static String encode(UUID postId, UUID commentId, Instant createdAt) {
-        return postId
-                + SEPARATOR + commentId
+    private static String encode(UUID commentId, UUID postId, Instant createdAt) {
+        return commentId
+                + SEPARATOR + postId
                 + SEPARATOR + createdAt.toEpochMilli();
     }
 }

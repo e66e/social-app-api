@@ -22,7 +22,8 @@ class SHA256CommentRequestHasher implements CommentRequestHasher {
 
         byte[] hash = digest.digest((authorId
                 + "\n" + commentRequest.postId()
-                + "\n" + commentRequest.content())
+                + "\n" + commentRequest.content()
+                + "\n" + commentRequest.parentCommentId())
                 .getBytes(StandardCharsets.UTF_8));
 
         return HexFormat.of().formatHex(hash);
