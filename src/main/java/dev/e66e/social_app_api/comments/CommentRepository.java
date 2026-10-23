@@ -33,7 +33,7 @@ interface CommentRepository extends JpaRepository<Comment, CommentId> {
             where c.id.postId = :postId and
                 (c.createdAt < :createdAt or (
                     c.createdAt = :createdAt and c.id.id < :commentId))
-            order by c.createdAt, c.id.id""")
+            order by c.createdAt desc, c.id.id""")
     List<Comment> findAllPostCommentAfterCursor(@Param("postId") UUID postId,
                                                 @Param("commentId") UUID commentId,
                                                 @Param("createdAt") Instant createdAt,
@@ -50,7 +50,7 @@ interface CommentRepository extends JpaRepository<Comment, CommentId> {
             where c.authorId = :authorId and
                 (c.createdAt < :createdAt or (
                     c.createdAt = :createdAt and c.id.id < :commentId))
-            order by c.createdAt, c.id.id""")
+            order by c.createdAt desc, c.id.id""")
     List<Comment> findAllUserCommentAfterCursor(@Param("authorId") UUID authorId,
                                                 @Param("updateId") UUID commentId,
                                                 @Param("createdAt") Instant createdAt,

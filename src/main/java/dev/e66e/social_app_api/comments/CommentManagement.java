@@ -1,6 +1,8 @@
 package dev.e66e.social_app_api.comments;
 
 import dev.e66e.social_app_api.comments.idempotency.CommentIdempotencyAPI;
+import dev.e66e.social_app_api.posts.PostInternalAPI;
+import dev.e66e.social_app_api.posts.PostRecord;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -21,6 +23,7 @@ class CommentManagement implements CommentInternalAPI, CommentExternalAPI {
     private final CommentMapper mapper;
     private final CommentRequestHasher hasher;
     private final CommentsProperties properties;
+    private final PostInternalAPI postAPI;
 
     @Override
     public Optional<CommentResponse> getComment(UUID commentId, UUID postId) {
@@ -46,11 +49,10 @@ class CommentManagement implements CommentInternalAPI, CommentExternalAPI {
         return this.createCommentsPageResponse(comments, normalizedLimit);
     }
 
-    private CommentsPageResponse createCommentsPageResponse(List<Comment> commentsWithExtra, int originalLimit) {
+    private CommentsPageResponse createCommentsPageResponse(List<Comment> commentsWithExtra, int originalNormalizedLimit) {
         String newCursor = null;
-        int normalizedLimit = this.normalizeLimit(originalLimit);
 
-        if (commentsWithExtra.size() > normalizedLimit) {
+        if (commentsWithExtra.size() > originalNormalizedLimit) {
             CommentRecord cr = this.mapper.commentToCommentRecord(
                     commentsWithExtra.get(commentsWithExtra.size() - 2));
             newCursor = CommentCursorCodec.encode(cr);
@@ -59,7 +61,7 @@ class CommentManagement implements CommentInternalAPI, CommentExternalAPI {
         return new CommentsPageResponse(
                 commentsWithExtra.stream()
                         .map(this.mapper::commentToCommentResponse)
-                        .limit(normalizedLimit)
+                        .limit(originalNormalizedLimit)
                         .toList(),
                 newCursor
         );
@@ -75,6 +77,12 @@ class CommentManagement implements CommentInternalAPI, CommentExternalAPI {
     @Override
     public CommentResponse postComment(UUID authorId, String idempotencyKey, CommentRequest commentRequest) {
         String hash = this.hasher.createCommentHash(authorId, commentRequest);
+
+        Optional<PostRecord> post = this.postAPI.getPostRecord(commentRequest.postId());
+
+        if (post.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Post for comment not found.");
+        }
 
         UUID createdCommentId = this.commentIdempotencyAPI.executeIdempotent(authorId, idempotencyKey, hash, () -> {
             Comment newComment = new Comment(
@@ -98,13 +106,12 @@ class CommentManagement implements CommentInternalAPI, CommentExternalAPI {
         return comment.map(this.mapper::commentToCommentResponse);
     }
 
-    private List<Comment> fetchPostComments(UUID postId, @Nullable CommentCursor cursor, int limit) {
-        int normalizedLimit = this.normalizeLimit(limit);
+    private List<Comment> fetchPostComments(UUID postId, @Nullable CommentCursor cursor, int normalizedLimit) {
         PageRequest pageRequest = PageRequest.of(0, normalizedLimit);
         if (cursor == null) {
             return this.repository.findAllPostCommentByNewest(postId, pageRequest);
         }
-        if (postId != cursor.postId()) {
+        if (!postId.equals(cursor.postId())) {
             throw new IllegalStateException("Cursors' postId and requested postId do not match.");
         }
 

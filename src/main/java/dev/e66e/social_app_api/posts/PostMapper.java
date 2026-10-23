@@ -7,5 +7,4 @@ import org.mapstruct.MappingConstants;
 interface PostMapper {
 
     PostRecord postToPostRecord(Post post);
-    Post postRecordToPost(PostRecord postDTO);
 }

@@ -112,12 +112,13 @@ class FeedManagementTest {
             verify(feedCacheService).prependToHomeFeed(eq(followerId), captor.capture());
 
             FeedItem item = captor.getValue();
-            assertThat(item.post().postId()).isEqualTo(postId);
-            assertThat(item.post().authorId()).isNotNull().isEqualTo(authorId);
-            assertThat(item.post().authorPubUsername()).isEqualTo("alice");
-            assertThat(item.post().textContent()).isEqualTo("hello");
-            assertThat(item.post().imageUrl()).isEqualTo("http://img");
-            assertThat(item.rankingScore()).isEqualTo(1.0);
+            assertThat(item)
+                    .returns(postId, i -> i.post().postId())
+                    .returns(authorId, i -> i.post().authorId())
+                    .returns("alice", i -> i.post().authorPubUsername())
+                    .returns("hello", i -> i.post().textContent())
+                    .returns("http://img", i -> i.post().imageUrl())
+                    .returns(1.0, FeedItem::rankingScore);
         }
     }
 }

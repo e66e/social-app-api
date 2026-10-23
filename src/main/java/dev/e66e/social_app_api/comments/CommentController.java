@@ -35,7 +35,7 @@ class CommentController {
     public CommentsPageResponse getPostComments(@PathVariable("id") UUID postId,
                                                 @RequestParam(name = "cursor", required = false)
                                                 String cursor,
-                                                @RequestParam(name = "limit", defaultValue = "10") @Min(1)
+                                                @RequestParam(name = "limit", defaultValue = "${comments.default-page-size}") @Min(1)
                                                 int limit) {
         return this.commentAPI.getPostComments(postId, cursor, limit);
     }
@@ -45,13 +45,13 @@ class CommentController {
     public CommentsPageResponse getUserComments(@PathVariable("userId") UUID userId,
                                                 @RequestParam(name = "cursor", required = false)
                                                 String cursor,
-                                                @RequestParam(defaultValue = "5")
+                                                @RequestParam(defaultValue = "${comments.default-page-size}")
                                                 int limit) {
         return this.commentAPI.getUserComments(userId, cursor, limit);
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.OK)
+    @ResponseStatus(HttpStatus.CREATED)
     public CommentResponse postComment(@RequestBody @Valid CreateCommentRequest commentRequest,
                                        @AuthenticationPrincipal Jwt jwt) {
         UUID authorId = UUID.fromString(Objects.requireNonNull(jwt.getSubject()));

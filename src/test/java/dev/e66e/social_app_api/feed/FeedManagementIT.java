@@ -152,9 +152,7 @@ public class FeedManagementIT {
                 .thenReturn(Set.of(normalUser, hotUser));
 
         PostRecord normalPost = post(normalId, Instant.now());
-        System.out.println("normalPost: " + normalPost.id());
         PostRecord hotPost = post(hotId, Instant.now());
-        System.out.println("hotPost: " + hotPost.id());
 
         when(postAPI.fetchNewestPostsOfGivenUsers(eq(Set.of(normalId)), anyInt()))
                 .thenReturn(List.of(normalPost));
