@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Propagation;
@@ -38,7 +39,7 @@ class CommentIdempotencyManagementIT {
 
         final UUID authorId = UUID.randomUUID();
         final UUID commentId = UUID.randomUUID();
-        final String requestHash = "requestHashrequestHashrequestHas";
+        final String requestHash = "a".repeat(64);
         final String idempotencyKey = "idempotencyKeyidempotencyKeyidemptencyKey";
 
 
@@ -121,6 +122,19 @@ class CommentIdempotencyManagementIT {
                         .executeIdempotent(authorId, idempotencyKey, requestHash, cb));
 
             assertEquals(HttpStatus.CONFLICT.value(), exc.getStatusCode().value());
+        }
+    }
+
+    @Nested
+    class CommentIdempotencyRecordEntity {
+
+        @Test
+        void whenIdempotencyKeyTooShort_throws() {
+            UUID authorId = UUID.randomUUID();
+            String requestHash = "a".repeat(64);
+            CommentCreationRequest entity = new CommentCreationRequest(authorId, "b", requestHash);
+
+            assertThrows(DataIntegrityViolationException.class, () -> repo.saveAndFlush(entity));
         }
     }
 }

@@ -1,6 +1,4 @@
-package dev.e66e.social_app_api.onboarding.management;
-
-import dev.e66e.social_app_api.onboarding.UserOnboardingDataDTO;
+package dev.e66e.social_app_api.onboarding;
 
 @FunctionalInterface
 public interface UserOnboardingEvaluator {

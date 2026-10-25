@@ -1,14 +1,9 @@
-package dev.e66e.social_app_api.onboarding.management;
+package dev.e66e.social_app_api.onboarding;
 
-import dev.e66e.social_app_api.onboarding.InvalidUserOnboardingData;
-import dev.e66e.social_app_api.onboarding.UserAlreadyOnboardedException;
-import dev.e66e.social_app_api.onboarding.UserOnboardingDataDTO;
 import dev.e66e.social_app_api.onboarding.persistence.UserOnboardingData;
 import dev.e66e.social_app_api.onboarding.persistence.UserOnboardingRepository;
 import dev.e66e.social_app_api.onboarding.persistence.UserOnboardingStatus;
-import dev.e66e.social_app_api.users.RegistrationData;
-import dev.e66e.social_app_api.users.UserRecord;
-import dev.e66e.social_app_api.users.UserRegistration;
+import dev.e66e.social_app_api.users.*;
 import dev.e66e.social_app_api.users.persistence.UserRole;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -22,6 +17,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -34,6 +30,8 @@ class OnboardingManagementTest {
     private UserOnboardingEvaluator userOnboardingEvaluator;
     @Mock
     private UserRegistration userRegistration;
+    @Mock
+    private UserExternalAPI userAPI;
 
     @InjectMocks
     private OnboardingManagement onboardingManagement;
@@ -154,6 +152,11 @@ class OnboardingManagementTest {
                     UserRole.USER,
                     false
             );
+            UserResponse userResponse = new UserResponse(id,
+                    dto.username(),
+                    dto.publicUsername(),
+                    dto.avatarUrl(),
+                    "");
             UserOnboardingData foundById = new UserOnboardingData(
                     id, UserOnboardingStatus.PENDING);
             RegistrationData registrationData = new RegistrationData(
@@ -168,11 +171,14 @@ class OnboardingManagementTest {
                     .thenReturn(Optional.of(foundById));
             when(userRegistration.register(registrationData))
                     .thenReturn(userRecord);
+            when(userAPI.getUserById(eq(id)))
+                    .thenReturn(Optional.of(userResponse));
+
             // When
-            UserRecord returnValue = onboardingManagement.userOnboarding(id, dto);
+            UserResponse returnValue = onboardingManagement.userOnboarding(id, dto);
 
             // Then
-            assertEquals(userRecord, returnValue);
+            assertEquals(userResponse, returnValue);
             verify(userOnboardingEvaluator, times(1)).check(dto);
             verify(userOnboardingRepository, times(2)).findById(any());
             verify(userRegistration, times(1)).register(any());
@@ -214,7 +220,7 @@ class OnboardingManagementTest {
 
         @Test
         @DisplayName("When user onboarded method should throw UserAlreadyOnboardedException.")
-        void userAlreadyOnboarded_shouldThrowUserAlreadyOnboardedException() {
+        void userAlreadyOnboarded_shouldReturnUserRecord() {
             // Given
             UUID id = UUID.randomUUID();
             UserOnboardingDataDTO dto = new UserOnboardingDataDTO(
@@ -229,11 +235,20 @@ class OnboardingManagementTest {
                                     UserOnboardingStatus.COMPLETED)
                     ));
 
+            UserResponse existingUserRecord = new UserResponse(id,
+                    "username",
+                    "publicUsername",
+                    "",
+                    "");
 
+            when(userAPI.getUserById(eq(id))).thenReturn(Optional.of(existingUserRecord));
 
-            // When / Then
-            assertThrows(UserAlreadyOnboardedException.class,
-                    () -> onboardingManagement.userOnboarding(id, dto));
+            // When
+            UserResponse returnedRecord = onboardingManagement.userOnboarding(id, dto);
+
+            // Then
+
+            assertThat(returnedRecord).isEqualTo(existingUserRecord);
         }
 
         @Test
@@ -264,6 +279,11 @@ class OnboardingManagementTest {
                     "correctUsername",
                     "correctPublicUsername",
                     "");
+            UserResponse userResponse = new UserResponse(id,
+                    dto.username(),
+                    dto.publicUsername(),
+                    dto.avatarUrl(),
+                    "");
             UserRecord userRecord = new UserRecord(
                     id,
                     dto.username(),
@@ -289,12 +309,15 @@ class OnboardingManagementTest {
             UserOnboardingData newUserOnboarding = new UserOnboardingData(id, UserOnboardingStatus.PENDING);
             when(userOnboardingRepository.saveAndFlush(newUserOnboarding))
                     .thenReturn(newUserOnboarding);
+            when(userAPI.getUserById(id))
+                    .thenReturn(Optional.of(userResponse));
+
 
             // When
-            UserRecord returnValue = onboardingManagement.userOnboarding(id, dto);
+            UserResponse returnValue = onboardingManagement.userOnboarding(id, dto);
 
             // Then
-            assertEquals(userRecord, returnValue);
+            assertEquals(userResponse, returnValue);
             verify(userOnboardingEvaluator).check(dto);
             verify(userOnboardingRepository, times(2)).findById(any());
             verify(userRegistration).register(any());

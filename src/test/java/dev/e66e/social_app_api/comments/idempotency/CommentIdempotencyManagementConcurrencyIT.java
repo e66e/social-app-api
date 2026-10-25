@@ -1,7 +1,7 @@
 package dev.e66e.social_app_api.comments.idempotency;
 
 import dev.e66e.social_app_api.PostgresTestcontainers;
-import dev.e66e.social_app_api.posts.PostInternalAPI;
+import dev.e66e.social_app_api.comments.CommentInternalAPI;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class CommentIdempotencyManagementConcurrencyIT {
 
     @MockitoBean
-    PostInternalAPI postAPI;
+    CommentInternalAPI commentAPI;
 
     @Autowired
     CommentCreationRequestRepository repo;

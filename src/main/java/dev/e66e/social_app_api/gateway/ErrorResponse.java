@@ -7,5 +7,4 @@ record ErrorResponse(
         String error,
         String message,
         Instant timestamp
-) {
-}
+) {}

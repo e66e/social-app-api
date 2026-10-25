@@ -1,6 +1,10 @@
 package dev.e66e.social_app_api.posts;
 
 import dev.e66e.social_app_api.PostgresTestcontainers;
+import dev.e66e.social_app_api.users.UserInternalAPI;
+import dev.e66e.social_app_api.users.UserRecord;
+import dev.e66e.social_app_api.users.persistence.UserRole;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,13 +26,17 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @ApplicationModuleTest
 @ImportAutoConfiguration({
@@ -48,6 +56,8 @@ class PostsModuleSliceTest {
     @Autowired
     private RestTestClient restTestClient;
 
+    @MockitoBean
+    private UserInternalAPI userAPI;
 
     /*
     * Mocking Spring MVC with resource server to accept simple custom jwt
@@ -92,13 +102,28 @@ class PostsModuleSliceTest {
         }
     }
 
+    @BeforeEach
+    void setUp() {
+        postRepo.deleteAll();
+        UserRecord mockUser = new UserRecord(
+                MockJwt.USER_ID,
+                "testuser",
+                "testuser_pub",
+                "https://avatar.url",
+                "bio",
+                true,
+                UserRole.USER,
+                false
+        );
+        when(userAPI.getUser(any(UUID.class))).thenReturn(Optional.of(mockUser));
+    }
+
     @Nested
     class GetEndpoint {
 
         final UUID userId = UUID.randomUUID();
         final String textContent = "textContent";
         final String imageUrl = "https://example.com/images";
-
 
         @Test
         void whenPostExists_thenSuccess() {
@@ -107,14 +132,14 @@ class PostsModuleSliceTest {
 
             // When / Then
             client.get()
-                    .uri("/posts/" + postFromDb.getId())
+                    .uri("/api/posts/" + postFromDb.getId())
                     .accept(MediaType.APPLICATION_JSON)
                     .exchange()
                     .expectStatus().isOk()
-                    .expectBody(PostRecord.class)
+                    .expectBody(PostResponse.class)
                     .value(post -> {
                         assertNotNull(post);
-                        assertEquals(postFromDb.getId(), post.id());
+                        assertEquals(postFromDb.getId(), post.postId());
                         assertEquals(postFromDb.getAuthorId(), post.authorId());
                         assertEquals(postFromDb.getTextContent(), post.textContent());
                         assertEquals(postFromDb.getImageUrl(), post.imageUrl());
@@ -130,7 +155,7 @@ class PostsModuleSliceTest {
 
             // When / Then
             client.get()
-                    .uri("/posts/" + postId)
+                    .uri("/api/posts/" + postId)
                     .accept(MediaType.APPLICATION_JSON)
                     .exchange()
                     .expectStatus().isNotFound();
@@ -148,18 +173,15 @@ class PostsModuleSliceTest {
 
         @Test
         void whenEverythingCorrect_thenSuccess() {
-            // Given
-
-
             // When / Then
             client.post()
-                    .uri("/posts")
+                    .uri("/api/posts")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + MockJwt.TOKEN)
                     .body(cpr)
                     .accept(MediaType.APPLICATION_JSON)
                     .exchange()
                     .expectStatus().isCreated()
-                    .expectBody(PostRecord.class)
+                    .expectBody(PostResponse.class)
                     .value(post -> {
                         assertNotNull(post);
                         assertEquals(pr.content(), post.textContent());
@@ -174,26 +196,26 @@ class PostsModuleSliceTest {
         @Test
         void whenPostingWithSameContentAndSameIdempotencyKey_thenReturnFirstPost() {
             // Given
-            PostRecord responseBody = restTestClient.post()
-                    .uri("/posts")
+            PostResponse responseBody = restTestClient.post()
+                    .uri("/api/posts")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + MockJwt.TOKEN)
                     .body(cpr)
                     .accept(MediaType.APPLICATION_JSON)
                     .exchange()
-                    .expectBody(PostRecord.class)
+                    .expectBody(PostResponse.class)
                     .returnResult().getResponseBody();
 
             assertNotNull(responseBody);
 
             // When / Then
             restTestClient.post()
-                    .uri("/posts")
+                    .uri("/api/posts")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + MockJwt.TOKEN)
                     .body(cpr)
                     .accept(MediaType.APPLICATION_JSON)
                     .exchange()
                     .expectStatus().isCreated()
-                    .expectBody(PostRecord.class)
+                    .expectBody(PostResponse.class)
                     .value(post -> {
                         assertNotNull(post);
                         assertEquals(responseBody, post);
@@ -205,20 +227,20 @@ class PostsModuleSliceTest {
         @Test
         void whenSameIdempotencyKeyUsedForDifferentPost_returnConflictStatus() {
             // Given
-            PostRecord responseBody = restTestClient.post()
-                    .uri("/posts")
+            PostResponse responseBody = restTestClient.post()
+                    .uri("/api/posts")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + MockJwt.TOKEN)
                     .body(cpr)
                     .accept(MediaType.APPLICATION_JSON)
                     .exchange()
-                    .expectBody(PostRecord.class)
+                    .expectBody(PostResponse.class)
                     .returnResult().getResponseBody();
 
             assertNotNull(responseBody);
 
             // When / Then
             restTestClient.post()
-                    .uri("/posts")
+                    .uri("/api/posts")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + MockJwt.TOKEN)
                     .body(new CreatePostRequest(idempotencyKey, new PostRequest("ipsum lorem", null)))
                     .accept(MediaType.APPLICATION_JSON)

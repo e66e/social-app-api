@@ -1,0 +1,14 @@
+package dev.e66e.social_app_api.users;
+
+import dev.e66e.social_app_api.users.persistence.FollowRelationship;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingConstants;
+
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
+interface FollowRelationshipMapper {
+
+    @Mapping(target = "followerId", source = "followerId")
+    @Mapping(target = "followTargetId", source = "followTargetId")
+    FollowRelationshipResponse followRelationshipToFollowRelationshipResponse(FollowRelationship followRelationship);
+}

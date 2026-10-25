@@ -1,16 +1,15 @@
-package dev.e66e.social_app_api.onboarding.management;
+package dev.e66e.social_app_api.onboarding;
 
-import dev.e66e.social_app_api.onboarding.*;
 import dev.e66e.social_app_api.onboarding.persistence.UserOnboardingData;
 import dev.e66e.social_app_api.onboarding.persistence.UserOnboardingRepository;
 import dev.e66e.social_app_api.onboarding.persistence.UserOnboardingStatus;
-import dev.e66e.social_app_api.users.RegistrationData;
-import dev.e66e.social_app_api.users.UserRecord;
-import dev.e66e.social_app_api.users.UserRegistration;
+import dev.e66e.social_app_api.users.*;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -19,11 +18,12 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 class OnboardingManagement
-        implements OnboardingExternalAPI, OnboardingInternalAPI {
+        implements OnboardingExternalAPI, OnboardingInternalAPI { // TODO remake onboarding
 
     private final UserOnboardingRepository userOnboardingRepository;
     private final UserOnboardingEvaluator userOnboardingEvaluator;
     private final UserRegistration userRegistration;
+    private final UserExternalAPI userExternalAPI;
 
     @Override
     @Transactional
@@ -41,8 +41,7 @@ class OnboardingManagement
         return user.get().getOnboardingStatus() == UserOnboardingStatus.COMPLETED;
     }
 
-    @Transactional
-    public UserOnboardingData addUserOnboarding(@Nullable UUID id) {
+    UserOnboardingData addUserOnboarding(@Nullable UUID id) {
         if (id == null)
             throw new IllegalArgumentException("User id cannot be null.");
 
@@ -52,17 +51,21 @@ class OnboardingManagement
         return this.userOnboardingRepository.saveAndFlush(newUserOnboarding);
     }
 
+    @Override
     @Transactional
-    public UserRecord userOnboarding(@Nullable UUID id,
-                                     @Nullable UserOnboardingDataDTO userOnboardingDataDTO) {
+    public UserResponse userOnboarding(@Nullable UUID id,
+                                       @Nullable UserOnboardingDataDTO userOnboardingDataDTO) {
         if (id == null)
             throw new IllegalArgumentException("User id cannot be null.");
 
         if (userOnboardingDataDTO == null)
             throw new IllegalArgumentException("User onboarding data cannot be null.");
 
-        if (this.isUserOnboarded(id))
-            throw new UserAlreadyOnboardedException("User already onboarded.");
+        if (this.isUserOnboarded(id)) {
+            return this.userExternalAPI.getUserById(id).orElseThrow(() ->
+                    new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                            "User was declared as onboarded but was not found in db."));
+        }
 
         if (!this.userOnboardingEvaluator.check(userOnboardingDataDTO))
             throw new InvalidUserOnboardingData("Invalid user onboarding data.");
@@ -79,6 +82,9 @@ class OnboardingManagement
         );
         userOnboardingData.setOnboardingStatus(UserOnboardingStatus.COMPLETED);
 
-        return userRecord;
+        return this.userExternalAPI.getUserById(userRecord.id())
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                                "Error while fetching user data."));
     }
 }

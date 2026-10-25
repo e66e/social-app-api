@@ -1,8 +1,6 @@
 package dev.e66e.social_app_api.onboarding;
 
-import java.util.UUID;
+import dev.e66e.social_app_api.config.OnboardingStatusProvider;
 
-public interface OnboardingInternalAPI {
-
-    boolean isUserOnboarded(UUID id);
+public interface OnboardingInternalAPI extends OnboardingStatusProvider {
 }

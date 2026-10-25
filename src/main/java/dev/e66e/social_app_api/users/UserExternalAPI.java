@@ -1,4 +1,15 @@
 package dev.e66e.social_app_api.users;
 
+import jakarta.validation.constraints.NotBlank;
+
+import java.util.Optional;
+import java.util.UUID;
+
 public interface UserExternalAPI {
+
+    Optional<UserResponse> getUserById(UUID userId);
+
+    Optional<UserResponse> getUserByPublicUsername(String username);
+
+    FollowRelationshipResponse followUser(UUID followerId, @NotBlank UUID followTargetId, String idempotencyKey);
 }

@@ -38,8 +38,8 @@ public class PostIdempotencyManagementConcurrencyIT {
 
     final UUID authorId = UUID.randomUUID();
     final UUID postId = UUID.randomUUID();
-    final String idempotencyKey = "idempotencyKeyidempotencyKey";
-    final String requestHash = "requestHashrequestHashrequestHas";
+    final String idempotencyKey = "idempotencyKeyidempotencyKeyidemidempotencyKeyidempotencyKey";
+    final String requestHash = "requestHashrequestHashrequestHasrequestHashrequestHashrequestHas";
 
     ExecutorService pool;
 

@@ -49,31 +49,6 @@ class CommentManagement implements CommentInternalAPI, CommentExternalAPI {
         return this.createCommentsPageResponse(comments, normalizedLimit);
     }
 
-    private CommentsPageResponse createCommentsPageResponse(List<Comment> commentsWithExtra, int originalNormalizedLimit) {
-        String newCursor = null;
-
-        if (commentsWithExtra.size() > originalNormalizedLimit) {
-            CommentRecord cr = this.mapper.commentToCommentRecord(
-                    commentsWithExtra.get(commentsWithExtra.size() - 2));
-            newCursor = CommentCursorCodec.encode(cr);
-        }
-
-        return new CommentsPageResponse(
-                commentsWithExtra.stream()
-                        .map(this.mapper::commentToCommentResponse)
-                        .limit(originalNormalizedLimit)
-                        .toList(),
-                newCursor
-        );
-    }
-
-    private int normalizeLimit(int limit) {
-        if (limit < 1 || limit > this.properties.getMaxPageSize()) {
-            return this.properties.getDefaultPageSize();
-        }
-        return limit;
-    }
-
     @Override
     public CommentResponse postComment(UUID authorId, String idempotencyKey, CommentRequest commentRequest) {
         String hash = this.hasher.createCommentHash(authorId, commentRequest);
@@ -98,6 +73,31 @@ class CommentManagement implements CommentInternalAPI, CommentExternalAPI {
                 .orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                         "Comment was created but later on was not found in db."));
+    }
+
+    private CommentsPageResponse createCommentsPageResponse(List<Comment> commentsWithExtra, int originalNormalizedLimit) {
+        String newCursor = null;
+
+        if (commentsWithExtra.size() > originalNormalizedLimit) {
+            CommentRecord cr = this.mapper.commentToCommentRecord(
+                    commentsWithExtra.get(commentsWithExtra.size() - 2));
+            newCursor = CommentCursorCodec.encode(cr);
+        }
+
+        return new CommentsPageResponse(
+                commentsWithExtra.stream()
+                        .map(this.mapper::commentToCommentResponse)
+                        .limit(originalNormalizedLimit)
+                        .toList(),
+                newCursor
+        );
+    }
+
+    private int normalizeLimit(int limit) {
+        if (limit < 1 || limit > this.properties.getMaxPageSize()) {
+            return this.properties.getDefaultPageSize();
+        }
+        return limit;
     }
 
     private Optional<CommentResponse> getCommentResponse(UUID commentId, UUID postId) {
