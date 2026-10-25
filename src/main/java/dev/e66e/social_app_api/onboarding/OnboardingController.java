@@ -1,8 +1,7 @@
-package dev.e66e.social_app_api.onboarding.controller;
+package dev.e66e.social_app_api.onboarding;
 
-import dev.e66e.social_app_api.onboarding.OnboardingExternalAPI;
-import dev.e66e.social_app_api.onboarding.UserOnboardingDataDTO;
 import dev.e66e.social_app_api.users.UserRecord;
+import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,7 +25,8 @@ class OnboardingController {
 
     @PostMapping("")
     @ResponseStatus(HttpStatus.CREATED)
-    UserRecord onboarding(@Valid @RequestBody UserOnboardingDataDTO userOnboardingDataDTO, Authentication auth) {
+    public UserRecord onboarding(@Valid @RequestBody UserOnboardingDataDTO userOnboardingDataDTO,
+                          @Nullable Authentication auth) {
         if (auth == null)
             throw new InvalidBearerTokenException("Bearer token required.");
 

@@ -71,6 +71,7 @@ class FeedManagement implements FeedExternalAPI, FeedInternalAPI {
         });
     }
 
+    // TODO to update
     private FeedItem toFeedItem(PostRecord postRecord, UUID followerId, Set<UUID> followerFollowTargetIds) {
         UserRecord author = this.userAPI.getUser(postRecord.authorId()).orElseThrow(() ->
                 new IllegalStateException("Post with id " + postRecord.id() + " with no author."));

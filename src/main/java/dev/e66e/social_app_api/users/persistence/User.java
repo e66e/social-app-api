@@ -24,7 +24,7 @@ public class User {
     @Column(updatable = false, nullable = false)
     private UUID id;
 
-    @Column(name = "username", nullable = false, unique = true)
+    @Column(name = "username", nullable = false, unique = true, updatable = false)
     @NotBlank(message = "Username is mandatory")
     private String username;
 

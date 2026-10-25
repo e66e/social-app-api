@@ -1,14 +1,13 @@
 package dev.e66e.social_app_api.config;
 
 import dev.e66e.social_app_api.onboarding.OnboardingInternalAPI;
-import dev.e66e.social_app_api.onboarding.UserNotOnboardedException;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.authorization.AuthorizationResult;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.stereotype.Component;
@@ -26,26 +25,22 @@ class OnboardedAuthorizationManager implements AuthorizationManager<RequestAutho
     public @Nullable AuthorizationResult authorize(Supplier<? extends @Nullable Authentication> authentication,
                                                    RequestAuthorizationContext object) {
         Authentication auth = authentication.get();
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new InvalidBearerTokenException("Authentication required");
+        if (auth == null || !auth.isAuthenticated() || !(auth instanceof  JwtAuthenticationToken jwtAuth)) {
+            return new AuthorizationDecision(false);
         }
 
-        if (auth instanceof JwtAuthenticationToken jwtAuth) {
-            Jwt jwt = jwtAuth.getToken();
-            String subject = jwt.getSubject();
-            if (subject == null)
-                throw new InvalidBearerTokenException("Subject required");
-
-            try {
-                UUID kcUserId = UUID.fromString(subject);
-                boolean isOnboarded = onboarding.isUserOnboarded(kcUserId);
-                if (!isOnboarded)
-                    throw new UserNotOnboardedException("User not onboarded.");
-                return () -> true;
-            } catch (IllegalArgumentException e) {
-                throw new InvalidBearerTokenException("Invalid token's id format.");
-            }
+        Jwt jwt = jwtAuth.getToken();
+        String subject = jwt.getSubject();
+        if (subject == null) {
+            return new AuthorizationDecision(false);
         }
-        throw new InvalidBearerTokenException("Invalid token type.");
+
+        try {
+            UUID kcUserId = UUID.fromString(subject);
+            boolean isOnboarded = this.onboarding.isUserOnboarded(kcUserId);
+            return new AuthorizationDecision(isOnboarded);
+        } catch (IllegalArgumentException e) {
+            return new AuthorizationDecision(false);
+        }
     }
 }

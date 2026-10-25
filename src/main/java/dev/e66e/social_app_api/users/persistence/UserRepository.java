@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -14,4 +15,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsById(@NonNull UUID id);
     boolean existsByUsername(@NonNull String username);
     Set<User> findByIdIn(@NonNull Collection<UUID> ids);
+
+    Optional<User> findByPublicUsername(String username);
 }

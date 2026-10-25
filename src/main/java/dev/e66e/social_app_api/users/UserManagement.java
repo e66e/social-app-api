@@ -73,4 +73,18 @@ class UserManagement implements UserExternalAPI, UserInternalAPI, UserRegistrati
                 .collect(Collectors.toSet());
     }
 
+    @Override
+    public Optional<UserResponse> getUserById(UUID userId) {
+        return this.getUser(userId).map(this.mapper::userRecordToUserResponse);
+    }
+
+
+    @Override
+    public Optional<UserResponse> getUserByPublicUsername(String username) {
+        return this.getUserByPubUsername(username).map(this.mapper::userRecordToUserResponse);
+    }
+
+    private Optional<UserRecord> getUserByPubUsername(String username) {
+        return this.userRepository.findByPublicUsername(username).map(this.mapper::userToUserRecord);
+    }
 }
