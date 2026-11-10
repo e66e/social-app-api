@@ -2,19 +2,14 @@ package dev.e66e.social_app_api.users;
 
 import dev.e66e.social_app_api.PostgresTestcontainers;
 import dev.e66e.social_app_api.config.OnboardingStatusProvider;
-import dev.e66e.social_app_api.users.persistence.FollowRelationship;
-import dev.e66e.social_app_api.users.persistence.FollowRelationshipRepository;
-import dev.e66e.social_app_api.users.persistence.User;
-import dev.e66e.social_app_api.users.persistence.UserRepository;
-import dev.e66e.social_app_api.users.persistence.UserRole;
+import dev.e66e.social_app_api.users.persistence.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.modulith.test.ModuleSlicing;
+import org.springframework.modulith.test.ApplicationModuleTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -29,8 +24,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@ModuleSlicing
+@ApplicationModuleTest
 @AutoConfigureMockMvc
 @PostgresTestcontainers
 class UsersModuleIT {

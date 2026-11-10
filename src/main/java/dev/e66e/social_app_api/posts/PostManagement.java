@@ -58,7 +58,6 @@ class PostManagement implements PostExternalAPI, PostInternalAPI {
     @Override
     @Transactional
     public PostResponse createPost(UUID authorId, String idempotencyKey, PostRequest postRequest) {
-        // TODO try to add agent which will check if post contents are harmful
         String postHash = this.hasher.createPostHash(authorId, postRequest);
 
         UUID createdPostId = this.postIdempotencyAPI.executeIdempotent(authorId, idempotencyKey, postHash, () -> {

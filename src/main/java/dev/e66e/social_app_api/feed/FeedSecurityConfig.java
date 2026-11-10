@@ -17,7 +17,7 @@ class FeedSecurityConfig {
 
     @Bean
     @Order(1)
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, UserOnboardingFilter userOnboardingFilter) {
+    public SecurityFilterChain feedSecurityFilterChain(HttpSecurity http, UserOnboardingFilter userOnboardingFilter) {
         return http.securityMatcher("/api/feed")
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().authenticated())

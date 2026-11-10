@@ -1,7 +1,10 @@
 package dev.e66e.social_app_api.comments;
 
 
-import dev.e66e.social_app_api.PostgresTestcontainers;
+import dev.e66e.social_app_api.KeycloakTestcontainersInitializer;
+import dev.e66e.social_app_api.PostgresTestcontainersInitializer;
+import dev.e66e.social_app_api.RedisTestcontainersInitializer;
+import dev.e66e.social_app_api.config.OnboardingStatusProvider;
 import dev.e66e.social_app_api.posts.PostInternalAPI;
 import dev.e66e.social_app_api.posts.PostRecord;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.modulith.test.ModuleSlicing;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -19,6 +23,8 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -29,11 +35,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @ModuleSlicing
 @AutoConfigureMockMvc
-@PostgresTestcontainers
+@ContextConfiguration(initializers = {
+        PostgresTestcontainersInitializer.class,
+        KeycloakTestcontainersInitializer.class,
+        RedisTestcontainersInitializer.class
+})
 class CommentsModuleIT {
 
     @MockitoBean
     private PostInternalAPI postAPI;
+
+    @MockitoBean
+    private OnboardingStatusProvider onboardingStatusProvider;
 
     @Autowired
     private MockMvc mockMvc;
@@ -52,6 +65,7 @@ class CommentsModuleIT {
         this.repository.deleteAll();
         this.authorId = UUID.randomUUID();
         this.postId = UUID.randomUUID();
+        lenient().when(onboardingStatusProvider.isUserOnboarded(any())).thenReturn(true);
     }
 
     @Test
@@ -100,7 +114,7 @@ class CommentsModuleIT {
     void shouldFetchPostComments() throws Exception {
         // Seed database directly
         Comment comment = new Comment(postId, authorId, null, "Seeded comment content");
-        repository.saveAndFlush(comment); // Saves comment and generates CommentId[cite: 1]
+        repository.saveAndFlush(comment);
 
         mockMvc.perform(get("/api/comments/{id}", postId)
                         .param("limit", "10")

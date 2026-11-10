@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
@@ -23,6 +25,7 @@ public class UserEntityTest {
     void userEntitySave() {
         User user = new User();
 
+        user.setId(UUID.randomUUID());
         user.setUsername("testusername");
         user.setPublicUsername("testpublicusername");
         user.setAvatarUrl("testavatarurl");

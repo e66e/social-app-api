@@ -16,7 +16,7 @@ class PostSecurityConfig {
 
     @Bean
     @Order(1)
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, UserOnboardingFilter userOnboardingFilter) {
+    public SecurityFilterChain postSecurityFilterChain(HttpSecurity http, UserOnboardingFilter userOnboardingFilter) {
         return http.securityMatcher("/api/posts")
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST).authenticated()

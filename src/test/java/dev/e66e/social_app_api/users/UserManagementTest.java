@@ -1,11 +1,7 @@
 package dev.e66e.social_app_api.users;
 
 import dev.e66e.social_app_api.users.idempotency.FollowRelationshipIdempotencyAPI;
-import dev.e66e.social_app_api.users.persistence.FollowRelationship;
-import dev.e66e.social_app_api.users.persistence.FollowRelationshipRepository;
-import dev.e66e.social_app_api.users.persistence.User;
-import dev.e66e.social_app_api.users.persistence.UserRepository;
-import dev.e66e.social_app_api.users.persistence.UserRole;
+import dev.e66e.social_app_api.users.persistence.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

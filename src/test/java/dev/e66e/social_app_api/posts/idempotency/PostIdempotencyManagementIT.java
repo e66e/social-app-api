@@ -38,7 +38,7 @@ class PostIdempotencyManagementIT {
 
         final UUID authorId = UUID.randomUUID();
         final UUID postId = UUID.randomUUID();
-        final String requestHash = "requestHashrequestHashrequestHas";
+        final String requestHash = "requestHashrequestHashrequestHasrequestHashrequestHashrequestHas";
         final String idempotencyKey = "idempotencyKeyidempotencyKeyidemptencyKey";
 
 

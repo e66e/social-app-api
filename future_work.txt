@@ -1,0 +1,5 @@
+isHotUser isn't concern of users, its' feeds concern
+
+Rework onboarding module
+
+try to add agent which will check if post contents are harmful

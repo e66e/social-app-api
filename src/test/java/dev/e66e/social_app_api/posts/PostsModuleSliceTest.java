@@ -1,6 +1,7 @@
 package dev.e66e.social_app_api.posts;
 
 import dev.e66e.social_app_api.PostgresTestcontainers;
+import dev.e66e.social_app_api.config.OnboardingStatusProvider;
 import dev.e66e.social_app_api.users.UserInternalAPI;
 import dev.e66e.social_app_api.users.UserRecord;
 import dev.e66e.social_app_api.users.persistence.UserRole;
@@ -16,6 +17,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.modulith.test.ApplicationModuleTest;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -36,6 +38,8 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ApplicationModuleTest
@@ -48,20 +52,25 @@ import static org.mockito.Mockito.when;
 class PostsModuleSliceTest {
 
     @Autowired
-    RestTestClient client;
+    private RestTestClient client;
 
     @Autowired
-    PostRepository postRepo;
+    private PostRepository postRepo;
 
     @Autowired
     private RestTestClient restTestClient;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @MockitoBean
     private UserInternalAPI userAPI;
 
-    /*
-    * Mocking Spring MVC with resource server to accept simple custom jwt
-    */
+    @MockitoBean
+    private OnboardingStatusProvider onboardingStatusProvider;
+
+
+    // Mocking Spring MVC with resource server to accept simple custom jwt
     @TestConfiguration
     static class MockJwt {
         static final UUID USER_ID = UUID.randomUUID();
@@ -105,6 +114,7 @@ class PostsModuleSliceTest {
     @BeforeEach
     void setUp() {
         postRepo.deleteAll();
+        jdbcTemplate.update("DELETE FROM post_creation_request");
         UserRecord mockUser = new UserRecord(
                 MockJwt.USER_ID,
                 "testuser",
@@ -115,7 +125,18 @@ class PostsModuleSliceTest {
                 UserRole.USER,
                 false
         );
-        when(userAPI.getUser(any(UUID.class))).thenReturn(Optional.of(mockUser));
+        when(userAPI.getUser(eq(mockUser.id()))).thenReturn(Optional.of(mockUser));
+        when(userAPI.getUser(any())).thenAnswer(i -> Optional.of(new UserRecord(
+                i.getArgument(0),
+                "userUser2",
+                "testUser2_pub",
+                "https://avatar.url",
+                "bio",
+                true,
+                UserRole.USER,
+                false
+        )));
+        lenient().when(onboardingStatusProvider.isUserOnboarded(any())).thenReturn(true);
     }
 
     @Nested

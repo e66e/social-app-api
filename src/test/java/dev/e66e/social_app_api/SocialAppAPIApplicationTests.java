@@ -7,7 +7,11 @@ import org.springframework.test.context.ContextConfiguration;
 
 @SpringBootTest
 @ActiveProfiles({"test"})
-@ContextConfiguration(initializers = {KeycloakTestcontainersInitializer.class, PostgresTestcontainersInitializer.class})
+@ContextConfiguration(initializers = {
+		KeycloakTestcontainersInitializer.class,
+		PostgresTestcontainersInitializer.class,
+		RedisTestcontainersInitializer.class
+})
 class SocialAppAPIApplicationTests {
 
 	@Test

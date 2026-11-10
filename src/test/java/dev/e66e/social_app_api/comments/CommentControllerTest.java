@@ -1,11 +1,14 @@
 package dev.e66e.social_app_api.comments;
 
+import dev.e66e.social_app_api.config.UserOnboardingFilter;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -21,11 +24,13 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-@WebMvcTest(CommentController.class)
+@WebMvcTest(controllers = CommentController.class,
+        excludeFilters = @ComponentScan.Filter(
+                type = FilterType.ASSIGNABLE_TYPE,
+                classes = UserOnboardingFilter.class
+        ))
 @TestPropertySource(properties = "comments.default-page-size=10")
 @AutoConfigureRestTestClient
 class CommentControllerTest {
@@ -33,14 +38,14 @@ class CommentControllerTest {
     @MockitoBean
     private CommentExternalAPI api;
 
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
+
     @Autowired
     private RestTestClient restClient;
 
     @Value("${comments.default-page-size}")
     private int defaultPageSize;
-
-    @MockitoBean
-    private JwtDecoder jwtDecoder;
 
     @Nested
     class GetSingleComment {

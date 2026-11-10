@@ -10,7 +10,11 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
 @ActiveProfiles({"test"})
-@ContextConfiguration(initializers = {KeycloakTestcontainersInitializer.class, PostgresTestcontainersInitializer.class})
+@ContextConfiguration(initializers = {
+        KeycloakTestcontainersInitializer.class,
+        PostgresTestcontainersInitializer.class,
+        RedisTestcontainersInitializer.class
+})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureRestTestClient
 public class KeycloakTest {
