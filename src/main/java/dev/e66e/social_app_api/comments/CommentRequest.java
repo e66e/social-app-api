@@ -9,4 +9,12 @@ record CommentRequest(
         UUID postId,
         @Nullable UUID parentCommentId,
         @NotBlank String content
-) {}
+) {
+    @Override
+    public String toString() {
+        return "CommentRequest{" +
+                "postId=" + postId +
+                ", parentCommentId=" + parentCommentId +
+                '}';
+    }
+}

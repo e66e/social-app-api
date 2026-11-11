@@ -1,5 +1,6 @@
 package dev.e66e.social_app_api.comments;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -9,14 +10,18 @@ import java.util.HexFormat;
 import java.util.UUID;
 
 @Component
+@Slf4j
 class SHA256CommentRequestHasher implements CommentRequestHasher {
 
     @Override
     public String createCommentHash(UUID authorId, CommentRequest commentRequest) {
+        log.info("Requested for CommentRequestHasher with arguments: authorId={}, commentRequest={}",
+                authorId, commentRequest);
         MessageDigest digest;
         try {
             digest = MessageDigest.getInstance("SHA-256");
         } catch (NoSuchAlgorithmException e) {
+            log.error("Couldn't find SHA-256 algorithm.");
             throw new IllegalStateException("SHA-256 should be available", e);
         }
 
@@ -26,6 +31,9 @@ class SHA256CommentRequestHasher implements CommentRequestHasher {
                 + "\n" + commentRequest.parentCommentId())
                 .getBytes(StandardCharsets.UTF_8));
 
-        return HexFormat.of().formatHex(hash);
+        String hashString = HexFormat.of().formatHex(hash);
+        log.debug("Created hash: {}", hashString);
+
+        return hashString;
     }
 }

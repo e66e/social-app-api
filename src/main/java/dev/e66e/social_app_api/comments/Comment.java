@@ -75,6 +75,16 @@ class Comment {
                 ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass().hashCode()
                 : getClass().hashCode();
     }
+
+    @Override
+    public String toString() {
+        return "Comment{" +
+                "id=" + this.id +
+                ", authorId=" + this.authorId +
+                ", parentCommentId=" + this.parentCommentId +
+                ", createdAt=" + this.createdAt +
+                '}';
+    }
 }
 
 @Embeddable
