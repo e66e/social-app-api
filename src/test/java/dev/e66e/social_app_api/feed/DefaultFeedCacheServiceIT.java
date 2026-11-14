@@ -88,7 +88,7 @@ public class DefaultFeedCacheServiceIT {
         cacheService.writeHomeFeed(new TimelinePage(userId, 0, List.of(), null));
 
         // Then
-        Long ttlSeconds = redis.getExpire("feed:home" + userId);
+        Long ttlSeconds = redis.getExpire("feed:home:" + userId);
         assertThat(ttlSeconds).isNotNull().isBetween(1L, 60L * 60L);
     }
 
@@ -127,6 +127,7 @@ public class DefaultFeedCacheServiceIT {
         );
 
         when(feedProp.getDefaultPageSize()).thenReturn(2);
+        when(feedProp.getHomeFeedTtlInMinutes()).thenReturn(60);
 
         cacheService.writeHomeFeed(existing);
 

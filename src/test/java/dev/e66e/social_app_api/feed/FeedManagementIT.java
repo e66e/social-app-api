@@ -92,7 +92,7 @@ public class FeedManagementIT {
         assertThat(page.items()).isNotNull();
         assertThat(page.items()).hasSize(1);
         assertThat(Objects.requireNonNull(page.items().getFirst().post().authorId())).isEqualTo(followed);
-        assertThat(redis.hasKey("feed:home" + viewer)).isTrue();
+        assertThat(redis.hasKey("feed:home:" + viewer)).isTrue();
     }
 
     @Test
@@ -110,7 +110,7 @@ public class FeedManagementIT {
                 1.0
         );
         redis.opsForValue().set(
-                "feed:home" + viewer,
+                "feed:home:" + viewer,
                 new tools.jackson.databind.ObjectMapper().writeValueAsString(
                         new TimelinePage(viewer, 1, List.of(cachedItem), null)),
                 java.time.Duration.ofMinutes(60)

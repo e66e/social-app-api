@@ -102,7 +102,6 @@ class FeedManagementTest {
             when(postAPI.getPostRecord(postId)).thenReturn(Optional.of(post));
             when(userAPI.getUser(authorId)).thenReturn(Optional.of(author));
             when(userAPI.getUsersFollowersIds(authorId)).thenReturn(Set.of(followerId));
-            when(userAPI.getUsersFollowersIds(followerId)).thenReturn(Set.of(authorId));
 
             // When
             feedManagement.processPostCreatedEvent(postId);

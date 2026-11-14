@@ -1,12 +1,14 @@
 package dev.e66e.social_app_api.posts;
 
 import jakarta.annotation.Nullable;
+import lombok.extern.slf4j.Slf4j;
 
 import java.security.InvalidParameterException;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+@Slf4j
 class PostCursorCodec {
 
     private static final String SEPARATOR = "|";
@@ -19,9 +21,12 @@ class PostCursorCodec {
             return null;
         }
 
+        log.debug("Parsing PostCursor String: {}.", cursorString);
+
         String[] parts = cursorString.split(SEPARATOR_REGEX, 2);
 
         if (parts.length != 2 || parts[0].isBlank() || parts[1].isBlank()) {
+            log.debug("Invalid PostCursor String: {}.", cursorString);
             throw new InvalidParameterException("Invalid cursor string: " + cursorString);
         }
 
@@ -30,6 +35,7 @@ class PostCursorCodec {
             return new PostCursor(UUID.fromString(parts[0]),
                     Instant.ofEpochMilli(epochMillis));
         } catch (RuntimeException e) {
+            log.debug("Invalid PostCursor String at timestamp: {}.", cursorString);
             throw new InvalidParameterException("Invalid cursor string: " + cursorString);
         }
     }

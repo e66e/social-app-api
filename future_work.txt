@@ -2,4 +2,8 @@ isHotUser isn't concern of users, its feeds concern
 
 Rework onboarding module
 
-try to add agent which will check if post contents are harmful
+Try to add agent which will check if post contents are harmful
+
+Need PostsIT tests
+
+Posts management might have overlapping private method. CHECK

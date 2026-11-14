@@ -59,7 +59,7 @@ class DefaultFeedCacheServiceTest {
         void returnsEmptyWhenRedisHasNoValue() {
             // Given
             UUID userId = UUID.randomUUID();
-            when(valueOps.get("feed:home" + userId)).thenReturn(null);
+            when(valueOps.get("feed:home:" + userId)).thenReturn(null);
 
             // When
             Optional<TimelinePage> result = service.getHomeFeed(userId);
@@ -75,7 +75,7 @@ class DefaultFeedCacheServiceTest {
             UUID userId = UUID.randomUUID();
             TimelinePage page = new TimelinePage(userId, 1, List.of(), null);
 
-            when(valueOps.get("feed:home" + userId)).thenReturn("json");
+            when(valueOps.get("feed:home:" + userId)).thenReturn("json");
             when(objectMapper.readValue("json", TimelinePage.class)).thenReturn(page);
 
             // When
@@ -90,7 +90,7 @@ class DefaultFeedCacheServiceTest {
             // Given
             UUID userId = UUID.randomUUID();
 
-            when(valueOps.get("feed:home" + userId)).thenReturn("json");
+            when(valueOps.get("feed:home:" + userId)).thenReturn("json");
             when(objectMapper.readValue("json", TimelinePage.class))
                     .thenThrow(new RuntimeException("bad json"));
 
@@ -118,7 +118,7 @@ class DefaultFeedCacheServiceTest {
 
             // Then
             verify(valueOps).set(
-                    eq("feed:home" + userId),
+                    eq("feed:home:" + userId),
                     eq("{\"x\":1}"),
                     eq(Expiration.from(Duration.ofMinutes(60)))
             );
@@ -145,7 +145,7 @@ class DefaultFeedCacheServiceTest {
                     null
             );
 
-            when(valueOps.get("feed:home" + userId)).thenReturn("json");
+            when(valueOps.get("feed:home:" + userId)).thenReturn("json");
             when(objectMapper.readValue("json", TimelinePage.class)).thenReturn(existing);
             when(objectMapper.writeValueAsString(any(TimelinePage.class))).thenReturn("{}");
 
@@ -183,7 +183,7 @@ class DefaultFeedCacheServiceTest {
                     null
             );
 
-            when(valueOps.get("feed:home" + userId)).thenReturn("json");
+            when(valueOps.get("feed:home:" + userId)).thenReturn("json");
             when(objectMapper.readValue("json", TimelinePage.class)).thenReturn(existing);
             when(objectMapper.writeValueAsString(any(TimelinePage.class))).thenReturn("{}");
 

@@ -19,7 +19,8 @@ class StandardUserOnboardingEvaluator implements UserOnboardingEvaluator {
         String publicUsername = userOnboardingDataDTO.publicUsername().trim();
 
         if (username.length() < 5 || publicUsername.length() < 5) {
-            log.debug("Username or public username is too short: {}, {}.", username, publicUsername);
+            log.debug("Username or public username is too short: username={}, publicUsername={}.",
+                    username, publicUsername);
             return false;
         }
 
