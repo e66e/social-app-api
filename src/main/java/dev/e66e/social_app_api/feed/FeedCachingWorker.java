@@ -111,6 +111,7 @@ class FeedCachingWorker {
     }
 
     private void validateConfiguration() {
+        log.debug("Validating FeedCachingWorker configuration.");
         this.requireText(prop.getStream().getKey(), "feed.async.stream.key");
         this.requireText(prop.getConsumer().getGroup(), "feed.async.consumer.group");
         this.requireText(prop.getConsumer().getGroup(), "feed.async.consumer.name");
@@ -146,13 +147,15 @@ class FeedCachingWorker {
                             ReadOffset.lastConsumed())
             );
         } catch (Exception e) {
-            log.error(e.getMessage());
+            log.error("First time event consuming error: {}", e.getMessage());
             return;
         }
 
         if (records == null || records.isEmpty()) {
             return;
         }
+
+        log.info("{} consumer gets {} record(s).", prop.getConsumer().getName(), records.size());
 
         records.forEach(this::processRecord);
     }
@@ -180,6 +183,8 @@ class FeedCachingWorker {
         if (records == null || records.isEmpty()) {
             return;
         }
+
+        log.info("{} consumer recovers {} record(s).", prop.getConsumer().getName(), records.size());
 
         records.forEach(this::processRecord);
     }
@@ -219,6 +224,8 @@ class FeedCachingWorker {
                 return List.of();
             }
 
+            log.info("{} consumer claims {} record(s)", prop.getConsumer().getName(), staleRecordsId.size());
+
             return redis.opsForStream().claim(
                     streamKey,
                     consumerGroup,
@@ -243,12 +250,14 @@ class FeedCachingWorker {
 
     private void requirePositive(Number value, String propertyName) {
         if (value.intValue() <= 0) {
+            log.error("{}={}. This property should be greater than 0.", propertyName, value);
             throw new IllegalStateException(propertyName + " must be greater than 0");
         }
     }
 
     private void requireText(@Nullable String value, String propertyName) {
         if (value == null || value.isBlank()) {
+            log.error("{}. This property should not be empty.", propertyName);
             throw new IllegalStateException(propertyName + " must not be blank");
         }
     }
@@ -266,6 +275,8 @@ class FeedCachingWorker {
             eventId = UUID.fromString((String) eventFields.get("eventId"));
             postId = UUID.fromString((String) eventFields.get("postId"));
         } catch (IllegalArgumentException e) {
+            log.warn("Post with eventId={} and postId={} had invalid id format.",
+                    eventFields.get("eventId"), eventFields.get("postId"));
             redis.opsForStream().acknowledge(streamKey, consumerGroup, record.getId());
             return;
         }
@@ -276,14 +287,18 @@ class FeedCachingWorker {
                 return;
             }
 
+            log.debug("Processing post with id={}", postId);
+
             this.feedAPI.processPostCreatedEvent(postId);
 
             self.markProcessed(eventId);
             clearFailureState(eventId);
             redis.opsForStream().acknowledge(streamKey, consumerGroup, record.getId());
+            log.info("Post with id={} was successfully processed.", postId);
         } catch (Exception e) {
             int attemptCount = this.recordFailureAttempt(eventId, e);
 
+            log.warn("Post with id={} failed with attempt {}.", postId, attemptCount);
             if (attemptCount < prop.getConsumer().getMaxProcessingAttempts()) {
                 return;
             }
@@ -291,6 +306,7 @@ class FeedCachingWorker {
             this.moveToDeadLetter(record, eventFields, eventId, attemptCount, e);
             redis.opsForStream().acknowledge(streamKey, consumerGroup, record.getId());
             this.feedEventFailureRepository.deleteById(eventId);
+            log.error("Post with id={} was moved to dlq.", postId);
         }
     }
 

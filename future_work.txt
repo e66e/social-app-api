@@ -1,4 +1,4 @@
-isHotUser isn't concern of users, its' feeds concern
+isHotUser isn't concern of users, its feeds concern
 
 Rework onboarding module
 

@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
@@ -21,6 +22,7 @@ import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class UserOnboardingFilter extends OncePerRequestFilter {
 
     private final OnboardingStatusProvider onboardingAPI;
@@ -65,10 +67,12 @@ public class UserOnboardingFilter extends OncePerRequestFilter {
         }
 
         if (!onboarded) {
+            log.warn("User {} has not been onboarded yet.", subject);
             reject(response, HttpStatus.FORBIDDEN, "User is not onboarded.");
             return;
         }
 
+        log.info("User {} has been onboarded.", subject);
         filterChain.doFilter(request, response);
     }
 
