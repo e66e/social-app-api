@@ -4,6 +4,7 @@ import dev.e66e.social_app_api.users.UserResponse;
 import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -18,6 +19,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/onboarding")
 @RequiredArgsConstructor
+@Slf4j
 class OnboardingController {
 
     private final OnboardingExternalAPI onboarding;
@@ -29,13 +31,15 @@ class OnboardingController {
         if (auth == null)
             throw new InvalidBearerTokenException("Bearer token required.");
 
-        if (auth instanceof JwtAuthenticationToken jwtAuth) {
-            Jwt token = jwtAuth.getToken();
-            String subjectStr = Objects.requireNonNull(token.getSubject());
-            UUID id = UUID.fromString(subjectStr);
-            return this.onboarding.userOnboarding(id, userOnboardingDataDTO);
-        }
-        throw new InvalidBearerTokenException("Invalid token type.");
+        if (!(auth instanceof JwtAuthenticationToken jwtAuth))
+            throw new InvalidBearerTokenException("Invalid token type.");
+
+        Jwt token = jwtAuth.getToken();
+        String subjectStr = Objects.requireNonNull(token.getSubject());
+        UUID id = UUID.fromString(subjectStr);
+
+        log.info("Onboarding subject with id={}", id);
+        return this.onboarding.userOnboarding(id, userOnboardingDataDTO);
     }
 
     @ExceptionHandler(InvalidUserOnboardingData.class)
