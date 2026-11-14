@@ -1,5 +1,6 @@
 package dev.e66e.social_app_api.idempotency;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -14,6 +15,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+@Slf4j
 public abstract class AbstractIdempotencyManagement<E extends AbstractIdempotencyRecord>
         implements IdempotencyInternalAPI {
 
@@ -39,15 +41,17 @@ public abstract class AbstractIdempotencyManagement<E extends AbstractIdempotenc
                                   String idempotencyKey,
                                   String requestHash,
                                   Supplier<UUID> callback) {
-
+        log.info("Executing idempotent.");
         Optional<E> reservedOpt = this.tryReserve(authorId, idempotencyKey, requestHash);
 
         if (reservedOpt.isEmpty()) {
             E record = this.repository.findByIdempotencyKey(authorId, idempotencyKey)
-                    .orElseThrow(() -> new ResponseStatusException(
-                            HttpStatus.INTERNAL_SERVER_ERROR,
-                            "Request exists but was not found.")
-                    );
+                    .orElseThrow(() -> {
+                        log.error("Problem with finding request with key {}:{} (authorId:idempotencyKey).", authorId, idempotencyKey);
+                        return new ResponseStatusException(
+                                HttpStatus.INTERNAL_SERVER_ERROR,
+                                "Request exists but was not found.");
+                    });
 
             return switch (record.getStatus()) {
                 case IN_PROGRESS -> throw new ResponseStatusException(
@@ -58,7 +62,7 @@ public abstract class AbstractIdempotencyManagement<E extends AbstractIdempotenc
                     if (!record.getRequestHash().equals(requestHash)) {
                         throw new ResponseStatusException(
                                 HttpStatus.CONFLICT,
-                                "Idempotency key already used for " + resourceName
+                                "Idempotency key already used for " + this.resourceName
                                         + " with id: " + record.getResourceId());
                     }
                     yield record.getResourceId();
@@ -73,6 +77,8 @@ public abstract class AbstractIdempotencyManagement<E extends AbstractIdempotenc
                 @Override
                 public void afterCompletion(int status) {
                     if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
+                        log.warn("Rolling back transaction for key {}:{} (authorId:idempotencyKey).",
+                                authorId, idempotencyKey);
                         deleteReservation(authorId, idempotencyKey);
                     }
                 }
@@ -83,6 +89,8 @@ public abstract class AbstractIdempotencyManagement<E extends AbstractIdempotenc
             UUID resourceId = callback.get();
             record.markCompleted(resourceId);
             repository.saveAndFlush(record);
+            log.info("Idempotency attempt ended successfully for {}:{} (authorId:idempotencyKey).",
+                    authorId, idempotencyKey);
             return record.getResourceId();
         } catch (RuntimeException e) {
             deleteReservation(authorId, idempotencyKey);
