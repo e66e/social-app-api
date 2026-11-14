@@ -45,34 +45,40 @@ class FeedManagement implements FeedExternalAPI, FeedInternalAPI {
 
     @Override
     public void processPostCreatedEvent(UUID postId) {
+        log.info("Process with id={} was commissioned", postId);
         PostRecord postRecord = this.postAPI.getPostRecord(postId)
-                .orElseThrow(() ->
-                        new IllegalStateException("Post was not found, even though its' id was in PostPublishedEvent.")
-                );
+                .orElseThrow(() -> {
+                    log.error("Post with id={} was requested to process, but the post itself was not found.", postId);
+                    return new IllegalStateException("Post was not found, even though its' id was in PostPublishedEvent.");
+                });
 
         this.applyDeliveryStrategy(postRecord);
     }
 
     private void applyDeliveryStrategy(PostRecord postRecord) {
-        UserRecord author = this.userAPI.getUser(postRecord.authorId()).orElseThrow(() ->
-                new IllegalStateException("Post with no author."));
+        UserRecord author = this.userAPI.getUser(postRecord.authorId()).orElseThrow(() -> {
+            log.error("Post with id={} has author that was not found in db. Author id={}.",
+                    postRecord.id(), postRecord.authorId());
+            return new IllegalStateException("Post with no author.");
+        });
 
         if (author.isHotUser()) {
             log.info("User with id: {} is hot user, therefore no fan out.", author.id());
             return;
         }
 
+        log.info("User with id: {} is normal user, therefore fanning out.", author.id());
+
         Set<UUID> followers = this.userAPI.getUsersFollowersIds(author.id());
 
         followers.forEach(followerId -> {
-            Set<UUID> followerFollowTargets = new LinkedHashSet<>(this.userAPI.getUsersFollowersIds(followerId));
-            FeedItem feedItem = this.toFeedItem(postRecord, followerId, followerFollowTargets);
+            FeedItem feedItem = this.toFeedItem(postRecord, null, null);
             this.feedCacheService.prependToHomeFeed(followerId, feedItem);
         });
     }
 
     // TODO to update
-    private FeedItem toFeedItem(PostRecord postRecord, UUID followerId, Set<UUID> followerFollowTargetIds) {
+    private FeedItem toFeedItem(PostRecord postRecord, @Nullable UUID followerId, @Nullable Set<UUID> followerFollowTargetIds) {
         UserRecord author = this.userAPI.getUser(postRecord.authorId()).orElseThrow(() ->
                 new IllegalStateException("Post with id " + postRecord.id() + " with no author."));
 
@@ -100,11 +106,15 @@ class FeedManagement implements FeedExternalAPI, FeedInternalAPI {
 
     @Override
     public TimelinePage getHomeFeed(UUID userId, @Nullable String cursor, int limit) {
+        log.info("Getting home feed for user with id={}", userId);
         int pageSize = this.normalizeLimit(limit);
 
+
         try {
-            UserRecord viewer = this.userAPI.getUser(userId).orElseThrow(() ->
-                    new IllegalStateException("User with id " + userId + " not found."));
+            UserRecord viewer = this.userAPI.getUser(userId).orElseThrow(() -> {
+                log.warn("User with id={} was not found in db.", userId);
+                return new IllegalStateException("User with id " + userId + " not found.");
+            });
             FeedCursor pageCursor = FeedCursorCodec.parse(cursor);
             Set<UUID> allFollowTargetIds = this.userAPI.getFollowTargetIds(viewer.id());
             GroupedFollowTargets groupedFollowTargets = this.groupFollowTargets(allFollowTargetIds);
@@ -132,6 +142,7 @@ class FeedManagement implements FeedExternalAPI, FeedInternalAPI {
             Optional<UserRecord> userOp = this.userAPI.getUser(userId);
 
             if (userOp.isEmpty()) {
+                log.warn("Requested user with id={} was not found.", userId);
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User with id " + userId + " not found.");
             }
 
@@ -139,9 +150,10 @@ class FeedManagement implements FeedExternalAPI, FeedInternalAPI {
             List<PostRecord> posts = this.fetchUserPosts(userId, pageCursor, pageSize + 1);
             int totalItems = Math.toIntExact(this.postAPI.getNumberOfPostsOfAuthor(userId));
 
+            log.debug("[Not owner request] Building feed page of user with id={}", userId);
             return this.buildTimelinePage(userId, posts, totalItems, pageSize);
         } catch (ResponseStatusException e) {
-            log.error("Error while getting user feed for user: {}\nMessage: {}", userId, e.getMessage());
+            log.error("Error while getting user feed for user: {}. Message: {}", userId, e.getMessage());
             throw e;
         }
     }

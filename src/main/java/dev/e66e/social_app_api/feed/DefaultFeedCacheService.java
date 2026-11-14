@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -38,13 +39,15 @@ class DefaultFeedCacheService implements FeedCacheService {
     }
 
     private String homeFeedKey(UUID userId) {
-        return "feed:home" + userId;
+        return "feed:home:" + userId;
     }
 
     @Override
     public void prependToHomeFeed(UUID userId, FeedItem item) {
+        log.info("Prepending feedItem={} for userId:{}", item, userId);
         Optional<TimelinePage> cachedFeed = this.getHomeFeed(userId);
         if (cachedFeed.isEmpty()) {
+            log.info("Inactive user, skipping prepending to feed.");
             return;
         }
 
@@ -71,19 +74,33 @@ class DefaultFeedCacheService implements FeedCacheService {
                         : null
                 )
         );
+        log.info("Prepending item={} for user with id={} was success.", item, userId);
     }
 
     @Override
     public void writeHomeFeed(TimelinePage timelinePage) {
+        log.info("Writing home feed of user with id={}.", timelinePage.ownerId());
+        long longDuration = this.redis.getExpire(this.homeFeedKey(timelinePage.ownerId()), TimeUnit.MINUTES);
+
+        if (longDuration == -1) {
+            log.error("Timeout for timelinePage of user with id={} was set to infinite.", timelinePage.ownerId());
+            throw new IllegalStateException("Invalid timeout for timelinePage of user with id=" + timelinePage.ownerId());
+        }
+
+        Duration duration = longDuration > 0
+                ? Duration.ofMinutes(longDuration)
+                : Duration.ofMinutes(this.properties.getHomeFeedTtlInMinutes());
+
         try {
             String payload = this.objectMapper.writeValueAsString(timelinePage);
             this.redis.opsForValue().set(
                     this.homeFeedKey(timelinePage.ownerId()),
                     payload,
-                    Expiration.from(Duration.ofMinutes(this.properties.getHomeFeedTtlInMinutes()))
+                    Expiration.from(duration)
             );
+            log.info("Timeline page for user with id={} was cached successfully.", timelinePage.ownerId());
         } catch (Exception e) {
-            log.info("Something went wrong with redis while setting payload for user {}, {}",
+            log.error("Something went wrong with redis while setting payload for user {}, {}",
                     timelinePage.ownerId(), e.getMessage());
         }
     }
