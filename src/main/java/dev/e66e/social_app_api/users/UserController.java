@@ -2,6 +2,7 @@ package dev.e66e.social_app_api.users;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -14,32 +15,30 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
+@Slf4j
 class UserController {
 
     private final UserExternalAPI userAPI;
 
-    @GetMapping("/{identifier}")
-    public UserResponse getUser(@PathVariable String identifier) {
-        try {
-            UUID userId = UUID.fromString(identifier);
-            return this.userAPI.getUserById(userId)
-                    .orElseThrow(() ->
-                            new ResponseStatusException(HttpStatus.NOT_FOUND,
-                                    "User with given identifier was not found."));
-        } catch (IllegalArgumentException e) {
-            return this.userAPI.getUserByPublicUsername(identifier)
-                    .orElseThrow(() ->
-                            new ResponseStatusException(HttpStatus.NOT_FOUND,
-                                    "User with given identifier was not found."));
-        }
+    @GetMapping("/{userId}")
+    public UserResponse getUser(@PathVariable UUID userId) {
+        log.info("Getting user with id={}.", userId);
+        return this.userAPI.getUserById(userId)
+            .orElseThrow(() -> {
+                log.warn("User with id={} not found.", userId);
+                return new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "User with given identifier was not found.");
+            });
     }
 
     @PostMapping
     public FollowRelationshipResponse followUser(
-            @RequestBody
-            @Valid FollowRelationshipRequest followRelationshipRequest,
+            @RequestBody @Valid
+            FollowRelationshipRequest followRelationshipRequest,
             @AuthenticationPrincipal Jwt jwt) {
         UUID followerId = UUID.fromString(Objects.requireNonNull(jwt.getSubject()));
+        log.info("User with id={} is trying to follow user with id={}.",
+                followerId, followRelationshipRequest.followTargetId());
 
         return this.userAPI.followUser(followerId,
                 followRelationshipRequest.followTargetId(),

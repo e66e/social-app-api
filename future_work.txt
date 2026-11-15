@@ -7,3 +7,6 @@ Try to add agent which will check if post contents are harmful
 Need PostsIT tests
 
 Posts management might have overlapping private method. CHECK
+
+Personalized exceptions for each module (currently mixing context of web mvc with module logic layer i.e. throwing
+ResponseStatusException inside of module ...Managements components)
