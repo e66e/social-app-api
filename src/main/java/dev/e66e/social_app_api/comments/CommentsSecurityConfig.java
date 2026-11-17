@@ -22,6 +22,7 @@ class CommentsSecurityConfig {
                         .requestMatchers(HttpMethod.POST).authenticated()
                         .anyRequest().permitAll())
                 .oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults()))
+                .cors(Customizer.withDefaults())
                 .addFilterAfter(userOnboardingFilter, BearerTokenAuthenticationFilter.class)
                 .csrf(AbstractHttpConfigurer::disable)
                 .build();
