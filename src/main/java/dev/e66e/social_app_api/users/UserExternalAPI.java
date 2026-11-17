@@ -11,5 +11,7 @@ public interface UserExternalAPI {
 
     Optional<UserResponse> getUserByPublicUsername(String username);
 
+    Optional<UserResponse> getUserByUsername(String username);
+
     FollowRelationshipResponse followUser(UUID followerId, @NotBlank UUID followTargetId, String idempotencyKey);
 }

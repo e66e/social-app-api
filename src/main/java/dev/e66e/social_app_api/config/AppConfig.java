@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 class AppConfig {
 
     @Bean
-    public FilterRegistrationBean<UserOnboardingFilter> disableOnboardingFilterAutoRegistration(
+    FilterRegistrationBean<UserOnboardingFilter> disableOnboardingFilterAutoRegistration(
             UserOnboardingFilter filter) {
         FilterRegistrationBean<UserOnboardingFilter> registration = new FilterRegistrationBean<>(filter);
         registration.setEnabled(false);

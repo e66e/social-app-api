@@ -20,12 +20,12 @@ class UserController {
 
     private final UserExternalAPI userAPI;
 
-    @GetMapping("/{userId}")
-    public UserResponse getUser(@PathVariable UUID userId) {
-        log.info("Getting user with id={}.", userId);
-        return this.userAPI.getUserById(userId)
+    @GetMapping("/{username}")
+    public UserResponse getUser(@PathVariable String username) {
+        log.info("Getting user with username={}.", username);
+        return this.userAPI.getUserByUsername(username)
             .orElseThrow(() -> {
-                log.warn("User with id={} not found.", userId);
+                log.warn("User with username={} not found.", username);
                 return new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "User with given identifier was not found.");
             });

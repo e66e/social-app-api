@@ -100,6 +100,11 @@ class UserManagement implements UserExternalAPI, UserInternalAPI, UserRegistrati
     }
 
     @Override
+    public Optional<UserResponse> getUserByUsername(String username) {
+        return this.getUserByUName(username).map(this.userMapper::userRecordToUserResponse);
+    }
+
+    @Override
     @Transactional
     public FollowRelationshipResponse followUser(UUID followerId, UUID followTargetId, String idempotencyKey) {
         String relationHash = this.followHasher.createRelationshipHash(followerId, followTargetId);
@@ -134,5 +139,9 @@ class UserManagement implements UserExternalAPI, UserInternalAPI, UserRegistrati
 
     private Optional<UserRecord> getUserByPubUsername(String username) {
         return this.userRepository.findByPublicUsername(username).map(this.userMapper::userToUserRecord);
+    }
+
+    private Optional<UserRecord> getUserByUName(String username) {
+        return this.userRepository.findByUsername(username).map(this.userMapper::userToUserRecord);
     }
 }
