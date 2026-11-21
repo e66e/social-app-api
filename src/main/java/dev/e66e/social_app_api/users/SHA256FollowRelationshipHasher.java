@@ -14,9 +14,9 @@ import java.util.UUID;
 class SHA256FollowRelationshipHasher implements FollowRelationshipHasher {
 
     @Override
-    public String createRelationshipHash(UUID followerId, UUID followTargetId) {
-        log.info("Started creating following hash for follower with id={} and follow target with id={}.",
-                followerId, followTargetId);
+    public String createRelationshipHash(UUID followerId, String followTargetUsername) {
+        log.info("Started creating following hash for follower with id={} and follow target with username={}.",
+                followerId, followTargetUsername);
         MessageDigest digest;
         try {
             digest = MessageDigest.getInstance("SHA-256");
@@ -24,12 +24,12 @@ class SHA256FollowRelationshipHasher implements FollowRelationshipHasher {
             throw new IllegalStateException("SHA-256 should be available", e);
         }
 
-        byte[] hash = digest.digest((followerId.toString()
-                + followTargetId)
+        byte[] hash = digest.digest((followerId
+                + followTargetUsername)
                 .getBytes(StandardCharsets.UTF_8));
 
-        log.info("Successfully created following hash for follower with id={} and follow target with id={}.",
-                followerId, followTargetId);
+        log.info("Successfully created following hash for follower with id={} and follow target with username={}.",
+                followerId, followTargetUsername);
         return HexFormat.of().formatHex(hash);
     }
 }

@@ -236,7 +236,7 @@ class UserManagementIT {
 
             FollowRelationshipResponse response = userManagement.followUser(
                     follower.getId(),
-                    target.getId(),
+                    target.getUsername(),
                     idempotencyKey
             );
 
@@ -260,14 +260,14 @@ class UserManagementIT {
             // First call
             FollowRelationshipResponse firstResponse = userManagement.followUser(
                     follower.getId(),
-                    target.getId(),
+                    target.getUsername(),
                     idempotencyKey
             );
 
             // Second call with same idempotency key
             FollowRelationshipResponse secondResponse = userManagement.followUser(
                     follower.getId(),
-                    target.getId(),
+                    target.getUsername(),
                     idempotencyKey
             );
 
@@ -283,10 +283,10 @@ class UserManagementIT {
             User target2 = createAndSaveUser("carol_c", "carol_c_pub");
 
             // First follow
-            userManagement.followUser(follower.getId(), target1.getId(), idempotencyKey);
+            userManagement.followUser(follower.getId(), target1.getUsername(), idempotencyKey);
 
             // Attempt with same key but different target
-            assertThatThrownBy(() -> userManagement.followUser(follower.getId(), target2.getId(), idempotencyKey))
+            assertThatThrownBy(() -> userManagement.followUser(follower.getId(), target2.getUsername(), idempotencyKey))
                     .isInstanceOf(ResponseStatusException.class)
                     .extracting(e -> ((ResponseStatusException) e).getStatusCode())
                     .isEqualTo(HttpStatus.CONFLICT);
@@ -298,7 +298,7 @@ class UserManagementIT {
             User target = createAndSaveUser("target_solo", "target_solo_pub");
             UUID nonExistentFollowerId = UUID.randomUUID();
 
-            assertThatThrownBy(() -> userManagement.followUser(nonExistentFollowerId, target.getId(), idempotencyKey))
+            assertThatThrownBy(() -> userManagement.followUser(nonExistentFollowerId, target.getUsername(), idempotencyKey))
                     .isInstanceOf(ResponseStatusException.class)
                     .extracting(e -> ((ResponseStatusException) e).getStatusCode())
                     .isEqualTo(HttpStatus.NOT_FOUND);
@@ -308,9 +308,9 @@ class UserManagementIT {
         @DisplayName("throws 404 NOT FOUND when follow target user does not exist")
         void shouldThrowNotFoundWhenTargetDoesNotExist() {
             User follower = createAndSaveUser("follower_solo", "follower_solo_pub");
-            UUID nonExistentTargetId = UUID.randomUUID();
+            String nonExistentTargetUsername = UUID.randomUUID().toString();
 
-            assertThatThrownBy(() -> userManagement.followUser(follower.getId(), nonExistentTargetId, idempotencyKey))
+            assertThatThrownBy(() -> userManagement.followUser(follower.getId(), nonExistentTargetUsername, idempotencyKey))
                     .isInstanceOf(ResponseStatusException.class)
                     .extracting(e -> ((ResponseStatusException) e).getStatusCode())
                     .isEqualTo(HttpStatus.NOT_FOUND);

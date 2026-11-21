@@ -83,30 +83,15 @@ class UserE2ETest {
     }
 
     @Nested
-    @DisplayName("GET /api/users/{identifier}")
+    @DisplayName("GET /api/users/{username}")
     class GetUserEndpoint {
 
         @Test
-        @DisplayName("returns 200 OK with UserResponse when queried by UUID")
-        void shouldGetUserByUUID() throws Exception {
-            User user = createAndSaveUser("alice_smith", "alice_s");
-
-            mockMvc.perform(get("/api/users/{identifier}", user.getId())
-                            .accept(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value(user.getId().toString()))
-                    .andExpect(jsonPath("$.username").value("alice_smith"))
-                    .andExpect(jsonPath("$.publicUsername").value("alice_s"))
-                    .andExpect(jsonPath("$.avatarUrl").value("https://example.com/alice_smith.png"))
-                    .andExpect(jsonPath("$.bio").value("Hello, I am alice_smith"));
-        }
-
-        @Test
         @DisplayName("returns 200 OK with UserResponse when queried by public username")
-        void shouldGetUserByPublicUsername() throws Exception {
+        void shouldGetUserByUsername() throws Exception {
             User user = createAndSaveUser("bob_jones", "bob_j");
 
-            mockMvc.perform(get("/api/users/{identifier}", "bob_j")
+            mockMvc.perform(get("/api/users/{identifier}", "bob_jones")
                             .accept(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(user.getId().toString()))
@@ -143,7 +128,7 @@ class UserE2ETest {
             User follower = createAndSaveUser("follower_e2e", "follower_e2e_pub");
             User target = createAndSaveUser("target_e2e", "target_e2e_pub");
 
-            FollowRelationshipRequest request = new FollowRelationshipRequest(target.getId(), idempotencyKey);
+            FollowRelationshipRequest request = new FollowRelationshipRequest(target.getUsername(), idempotencyKey);
 
             mockMvc.perform(post("/api/users")
                             .with(jwt().jwt(jwt -> jwt.subject(follower.getId().toString())))
@@ -164,7 +149,7 @@ class UserE2ETest {
             User follower = createAndSaveUser("follower_idemp", "follower_idemp_pub");
             User target = createAndSaveUser("target_idemp", "target_idemp_pub");
 
-            FollowRelationshipRequest request = new FollowRelationshipRequest(target.getId(), idempotencyKey);
+            FollowRelationshipRequest request = new FollowRelationshipRequest(target.getUsername(), idempotencyKey);
 
             // First request
             String firstResponse = mockMvc.perform(post("/api/users")
@@ -193,8 +178,8 @@ class UserE2ETest {
             User target1 = createAndSaveUser("target1_conflict", "target1_conflict_pub");
             User target2 = createAndSaveUser("target2_conflict", "target2_conflict_pub");
 
-            FollowRelationshipRequest request1 = new FollowRelationshipRequest(target1.getId(), idempotencyKey);
-            FollowRelationshipRequest request2 = new FollowRelationshipRequest(target2.getId(), idempotencyKey);
+            FollowRelationshipRequest request1 = new FollowRelationshipRequest(target1.getUsername(), idempotencyKey);
+            FollowRelationshipRequest request2 = new FollowRelationshipRequest(target2.getUsername(), idempotencyKey);
 
             // First follow succeeds
             mockMvc.perform(post("/api/users")
@@ -215,7 +200,7 @@ class UserE2ETest {
         @DisplayName("returns 404 NOT FOUND when follow target user does not exist")
         void shouldReturn404WhenTargetDoesNotExist() throws Exception {
             User follower = createAndSaveUser("follower_lonely", "follower_lonely_pub");
-            FollowRelationshipRequest request = new FollowRelationshipRequest(UUID.randomUUID(), idempotencyKey);
+            FollowRelationshipRequest request = new FollowRelationshipRequest("nonexistingtarget", idempotencyKey);
 
             mockMvc.perform(post("/api/users")
                             .with(jwt().jwt(jwt -> jwt.subject(follower.getId().toString())))
@@ -229,7 +214,7 @@ class UserE2ETest {
         void shouldReturn404WhenFollowerDoesNotExist() throws Exception {
             User target = createAndSaveUser("target_alone", "target_alone_pub");
             UUID nonExistentFollowerId = UUID.randomUUID();
-            FollowRelationshipRequest request = new FollowRelationshipRequest(target.getId(), idempotencyKey);
+            FollowRelationshipRequest request = new FollowRelationshipRequest(target.getUsername(), idempotencyKey);
 
             mockMvc.perform(post("/api/users")
                             .with(jwt().jwt(jwt -> jwt.subject(nonExistentFollowerId.toString())))
@@ -252,7 +237,7 @@ class UserE2ETest {
                     .andExpect(status().isBadRequest());
 
             // Key too short (< 32 chars)
-            FollowRelationshipRequest shortKeyRequest = new FollowRelationshipRequest(UUID.randomUUID(), "too_short");
+            FollowRelationshipRequest shortKeyRequest = new FollowRelationshipRequest("nonexistingusername", "too_short");
             mockMvc.perform(post("/api/users")
                             .with(jwt().jwt(jwt -> jwt.subject(follower.getId().toString())))
                             .contentType(MediaType.APPLICATION_JSON)
@@ -263,7 +248,7 @@ class UserE2ETest {
         @Test
         @DisplayName("returns 401 UNAUTHORIZED when no JWT token is provided")
         void shouldRejectUnauthenticatedRequest() throws Exception {
-            FollowRelationshipRequest request = new FollowRelationshipRequest(UUID.randomUUID(), idempotencyKey);
+            FollowRelationshipRequest request = new FollowRelationshipRequest("randomUsername", idempotencyKey);
 
             mockMvc.perform(post("/api/users")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -279,7 +264,7 @@ class UserE2ETest {
 
             when(onboardingStatusProvider.isUserOnboarded(follower.getId())).thenReturn(false);
 
-            FollowRelationshipRequest request = new FollowRelationshipRequest(target.getId(), idempotencyKey);
+            FollowRelationshipRequest request = new FollowRelationshipRequest(target.getUsername(), idempotencyKey);
 
             mockMvc.perform(post("/api/users")
                             .with(jwt().jwt(jwt -> jwt.subject(follower.getId().toString())))
@@ -302,15 +287,15 @@ class UserE2ETest {
             User bob = createAndSaveUser("bob_builder", "bob_b");
             String key = "f".repeat(40);
 
-            // Step 1: Alice looks up Bob by his public username
-            mockMvc.perform(get("/api/users/{identifier}", "bob_b")
+            // Step 1: Alice looks up Bob by his username
+            mockMvc.perform(get("/api/users/{identifier}", "bob_builder")
                             .accept(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(bob.getId().toString()))
                     .andExpect(jsonPath("$.username").value("bob_builder"));
 
             // Step 2: Alice follows Bob
-            FollowRelationshipRequest followBob = new FollowRelationshipRequest(bob.getId(), key);
+            FollowRelationshipRequest followBob = new FollowRelationshipRequest(bob.getUsername(), key);
             mockMvc.perform(post("/api/users")
                             .with(jwt().jwt(jwt -> jwt.subject(alice.getId().toString())))
                             .contentType(MediaType.APPLICATION_JSON)

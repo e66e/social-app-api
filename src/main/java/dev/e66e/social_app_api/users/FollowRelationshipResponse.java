@@ -6,5 +6,7 @@ import java.util.UUID;
 
 public record FollowRelationshipResponse(
         @NotBlank UUID followerId,
-        @NotBlank UUID followTargetId
+        @NotBlank String followerUsername,
+        @NotBlank UUID followTargetId,
+        @NotBlank String followTargetUsername
 ) {}

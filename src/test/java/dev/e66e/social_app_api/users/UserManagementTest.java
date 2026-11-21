@@ -41,9 +41,6 @@ class UserManagementTest {
     private UserMapper userMapper;
 
     @Mock
-    private FollowRelationshipMapper followMapper;
-
-    @Mock
     private FollowRelationshipHasher followHasher;
 
     @Mock
@@ -60,7 +57,6 @@ class UserManagementTest {
                 userRepository,
                 followRepository,
                 userMapper,
-                followMapper,
                 followHasher,
                 followIdempotencyAPI,
                 events
@@ -73,6 +69,7 @@ class UserManagementTest {
 
         private final UUID followerId = UUID.randomUUID();
         private final UUID followTargetId = UUID.randomUUID();
+        String nonExistingFollowTargetUsername = "nonexisting";
         private final String idempotencyKey = "a".repeat(32);
         private final String relationHash = "b".repeat(64);
 
@@ -83,22 +80,23 @@ class UserManagementTest {
             User follower = User.builder().id(followerId).username("follower").build();
             User followTarget = User.builder().id(followTargetId).username("target").build();
             FollowRelationship relationship = new FollowRelationship(follower, followTarget);
-            FollowRelationshipResponse expectedResponse = new FollowRelationshipResponse(followerId, followTargetId);
+            FollowRelationshipResponse expectedResponse =
+                    new FollowRelationshipResponse(followerId, follower.getUsername(),
+                            followTargetId, followTarget.getUsername());
 
-            when(followHasher.createRelationshipHash(followerId, followTargetId)).thenReturn(relationHash);
+            when(followHasher.createRelationshipHash(followerId, followTarget.getUsername())).thenReturn(relationHash);
             when(userRepository.findById(followerId)).thenReturn(Optional.of(follower));
-            when(userRepository.findById(followTargetId)).thenReturn(Optional.of(followTarget));
+            when(userRepository.findByUsername(followTarget.getUsername())).thenReturn(Optional.of(followTarget));
             when(followIdempotencyAPI.executeIdempotent(eq(followerId), eq(idempotencyKey), eq(relationHash), any()))
                     .thenReturn(followTargetId);
             when(followRepository.findById(followerId, followTargetId)).thenReturn(Optional.of(relationship));
-            when(followMapper.followRelationshipToFollowRelationshipResponse(relationship)).thenReturn(expectedResponse);
 
             // When
-            FollowRelationshipResponse actualResponse = userManagement.followUser(followerId, followTargetId, idempotencyKey);
+            FollowRelationshipResponse actualResponse = userManagement.followUser(followerId, followTarget.getUsername(), idempotencyKey);
 
             // Then
             assertThat(actualResponse).isEqualTo(expectedResponse);
-            verify(followHasher).createRelationshipHash(followerId, followTargetId);
+            verify(followHasher).createRelationshipHash(followerId, followTarget.getUsername());
             verify(followIdempotencyAPI).executeIdempotent(eq(followerId), eq(idempotencyKey), eq(relationHash), any());
             verify(followRepository).findById(followerId, followTargetId);
         }
@@ -110,14 +108,15 @@ class UserManagementTest {
             User follower = User.builder().id(followerId).username("follower").build();
             User followTarget = User.builder().id(followTargetId).username("target").build();
             FollowRelationship relationship = new FollowRelationship(follower, followTarget);
-            FollowRelationshipResponse expectedResponse = new FollowRelationshipResponse(followerId, followTargetId);
+            FollowRelationshipResponse expectedResponse
+                    = new FollowRelationshipResponse(followerId, follower.getUsername(),
+                        followTargetId, followTarget.getUsername());
 
-            when(followHasher.createRelationshipHash(followerId, followTargetId)).thenReturn(relationHash);
+            when(followHasher.createRelationshipHash(followerId, followTarget.getUsername())).thenReturn(relationHash);
             when(userRepository.findById(followerId)).thenReturn(Optional.of(follower));
-            when(userRepository.findById(followTargetId)).thenReturn(Optional.of(followTarget));
+            when(userRepository.findByUsername(followTarget.getUsername())).thenReturn(Optional.of(followTarget));
             when(followRepository.saveAndFlush(any(FollowRelationship.class))).thenReturn(relationship);
             when(followRepository.findById(followerId, followTargetId)).thenReturn(Optional.of(relationship));
-            when(followMapper.followRelationshipToFollowRelationshipResponse(relationship)).thenReturn(expectedResponse);
 
             // Delegate to the callback supplied to executeIdempotent
             when(followIdempotencyAPI.executeIdempotent(eq(followerId), eq(idempotencyKey), eq(relationHash), any()))
@@ -127,24 +126,25 @@ class UserManagementTest {
                     });
 
             // When
-            userManagement.followUser(followerId, followTargetId, idempotencyKey);
+            FollowRelationshipResponse response = userManagement.followUser(followerId, followTarget.getUsername(), idempotencyKey);
 
             // Then
             ArgumentCaptor<FollowRelationship> captor = ArgumentCaptor.forClass(FollowRelationship.class);
             verify(followRepository).saveAndFlush(captor.capture());
             assertThat(captor.getValue().getFollowerId()).isEqualTo(followerId);
             assertThat(captor.getValue().getFollowTargetId()).isEqualTo(followTargetId);
+            assertThat(response).isEqualTo(expectedResponse);
         }
 
         @Test
         @DisplayName("throws 404 Not Found when follower does not exist")
         void followUser_followerNotFound_throws404() {
             // Given
-            when(followHasher.createRelationshipHash(followerId, followTargetId)).thenReturn(relationHash);
+            when(followHasher.createRelationshipHash(followerId, nonExistingFollowTargetUsername)).thenReturn(relationHash);
             when(userRepository.findById(followerId)).thenReturn(Optional.empty());
 
             // When / Then
-            assertThatThrownBy(() -> userManagement.followUser(followerId, followTargetId, idempotencyKey))
+            assertThatThrownBy(() -> userManagement.followUser(followerId, nonExistingFollowTargetUsername, idempotencyKey))
                     .isInstanceOf(ResponseStatusException.class)
                     .extracting(e -> ((ResponseStatusException) e).getStatusCode())
                     .isEqualTo(HttpStatus.NOT_FOUND);
@@ -157,12 +157,12 @@ class UserManagementTest {
         void followUser_targetNotFound_throws404() {
             // Given
             User follower = User.builder().id(followerId).username("follower").build();
-            when(followHasher.createRelationshipHash(followerId, followTargetId)).thenReturn(relationHash);
+            when(followHasher.createRelationshipHash(followerId, nonExistingFollowTargetUsername)).thenReturn(relationHash);
             when(userRepository.findById(followerId)).thenReturn(Optional.of(follower));
-            when(userRepository.findById(followTargetId)).thenReturn(Optional.empty());
+            when(userRepository.findByUsername(any())).thenReturn(Optional.empty());
 
             // When / Then
-            assertThatThrownBy(() -> userManagement.followUser(followerId, followTargetId, idempotencyKey))
+            assertThatThrownBy(() -> userManagement.followUser(followerId, nonExistingFollowTargetUsername, idempotencyKey))
                     .isInstanceOf(ResponseStatusException.class)
                     .extracting(e -> ((ResponseStatusException) e).getStatusCode())
                     .isEqualTo(HttpStatus.NOT_FOUND);
@@ -177,15 +177,15 @@ class UserManagementTest {
             User follower = User.builder().id(followerId).username("follower").build();
             User followTarget = User.builder().id(followTargetId).username("target").build();
 
-            when(followHasher.createRelationshipHash(followerId, followTargetId)).thenReturn(relationHash);
+            when(followHasher.createRelationshipHash(followerId, followTarget.getUsername())).thenReturn(relationHash);
             when(userRepository.findById(followerId)).thenReturn(Optional.of(follower));
-            when(userRepository.findById(followTargetId)).thenReturn(Optional.of(followTarget));
+            when(userRepository.findByUsername(followTarget.getUsername())).thenReturn(Optional.of(followTarget));
             when(followIdempotencyAPI.executeIdempotent(eq(followerId), eq(idempotencyKey), eq(relationHash), any()))
                     .thenReturn(followTargetId);
             when(followRepository.findById(followerId, followTargetId)).thenReturn(Optional.empty());
 
             // When / Then
-            assertThatThrownBy(() -> userManagement.followUser(followerId, followTargetId, idempotencyKey))
+            assertThatThrownBy(() -> userManagement.followUser(followerId, followTarget.getUsername(), idempotencyKey))
                     .isInstanceOf(ResponseStatusException.class)
                     .extracting(e -> ((ResponseStatusException) e).getStatusCode())
                     .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);

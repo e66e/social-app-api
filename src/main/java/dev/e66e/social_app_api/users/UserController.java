@@ -37,11 +37,11 @@ class UserController {
             FollowRelationshipRequest followRelationshipRequest,
             @AuthenticationPrincipal Jwt jwt) {
         UUID followerId = UUID.fromString(Objects.requireNonNull(jwt.getSubject()));
-        log.info("User with id={} is trying to follow user with id={}.",
-                followerId, followRelationshipRequest.followTargetId());
+        log.info("User with id={} is trying to follow user with username={}.",
+                followerId, followRelationshipRequest.followTargetUsername());
 
         return this.userAPI.followUser(followerId,
-                followRelationshipRequest.followTargetId(),
+                followRelationshipRequest.followTargetUsername(),
                 followRelationshipRequest.idempotencyKey());
     }
 }

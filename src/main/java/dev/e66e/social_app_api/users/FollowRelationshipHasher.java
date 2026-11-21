@@ -4,5 +4,5 @@ import java.util.UUID;
 
 interface FollowRelationshipHasher {
 
-    String createRelationshipHash(UUID followerId, UUID followTargetId);
+    String createRelationshipHash(UUID followerId, String followTargetUsername);
 }

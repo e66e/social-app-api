@@ -69,24 +69,10 @@ class UsersModuleIT {
     class UserControllerTests {
 
         @Test
-        void shouldGetUserById() throws Exception {
-            User user = createAndSaveUser("johndoe", "johnny");
-
-            mockMvc.perform(get("/api/users/{identifier}", user.getId())
-                            .accept(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value(user.getId().toString()))
-                    .andExpect(jsonPath("$.username").value("johndoe"))
-                    .andExpect(jsonPath("$.publicUsername").value("johnny"))
-                    .andExpect(jsonPath("$.avatarUrl").value("https://example.com/avatar.png"))
-                    .andExpect(jsonPath("$.bio").value("Hello, I am johndoe"));
-        }
-
-        @Test
-        void shouldGetUserByPublicUsername() throws Exception {
+        void shouldGetUserByUsername() throws Exception {
             User user = createAndSaveUser("janedoe", "jane_public");
 
-            mockMvc.perform(get("/api/users/{identifier}", "jane_public")
+            mockMvc.perform(get("/api/users/{identifier}", "janedoe")
                             .accept(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(user.getId().toString()))

@@ -26,7 +26,6 @@ class UserManagement implements UserExternalAPI, UserInternalAPI, UserRegistrati
     private final UserRepository userRepository;
     private final FollowRelationshipRepository followRepository;
     private final UserMapper userMapper;
-    private final FollowRelationshipMapper followMapper;
     private final FollowRelationshipHasher followHasher;
     private final FollowRelationshipIdempotencyAPI followIdempotencyAPI;
     private final ApplicationEventPublisher events;
@@ -106,20 +105,21 @@ class UserManagement implements UserExternalAPI, UserInternalAPI, UserRegistrati
 
     @Override
     @Transactional
-    public FollowRelationshipResponse followUser(UUID followerId, UUID followTargetId, String idempotencyKey) {
-        String relationHash = this.followHasher.createRelationshipHash(followerId, followTargetId);
+    public FollowRelationshipResponse followUser(UUID followerId, String followTargetUsername, String idempotencyKey) {
+        String relationHash = this.followHasher.createRelationshipHash(followerId, followTargetUsername);
 
         User follower = this.userRepository.findById(followerId).orElseThrow(() -> {
             log.warn("Follower with id={} not found.", followerId);
             return new ResponseStatusException(HttpStatus.NOT_FOUND, "Follower not found.");
         });
 
-        User followTarget = this.userRepository.findById(followTargetId).orElseThrow(() -> {
-            log.warn("Follow target with id={} not found.", followTargetId);
+        User followTarget = this.userRepository.findByUsername(followTargetUsername).orElseThrow(() -> {
+            log.warn("Follow target with username={} not found.", followTargetUsername);
             return new ResponseStatusException(HttpStatus.NOT_FOUND, "Follow target not found.");
         });
 
-        UUID newRecordsFollowTargetId = this.followIdempotencyAPI.executeIdempotent(followerId, idempotencyKey, relationHash, () -> {
+        UUID newRecordsFollowTargetId = this.followIdempotencyAPI.executeIdempotent(followerId, idempotencyKey,
+                relationHash, () -> {
             FollowRelationship followRelationship = new FollowRelationship(follower, followTarget);
 
             return this.followRepository.saveAndFlush(followRelationship).getFollowTargetId();
@@ -128,13 +128,15 @@ class UserManagement implements UserExternalAPI, UserInternalAPI, UserRegistrati
         FollowRelationship newRelationship = this.followRepository.findById(followerId, newRecordsFollowTargetId)
                 .orElseThrow(() -> {
                     log.warn("FollowRelationship with id={}:{} (followerId:followTargetId) was created but later on was not found in db.",
-                            followerId, followTargetId);
+                            followerId, followTarget.getId());
                     return new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                             "Record was added but wasn't found in database.");
                 });
-        log.info("FollowRelationship with follower id={} and follow targets id={} was created successfully.",
-                followerId, followTargetId);
-        return this.followMapper.followRelationshipToFollowRelationshipResponse(newRelationship);
+        log.info("FollowRelationship with follower id={} and follow targets username={} was created successfully.",
+                followerId, followTargetUsername);
+//        return this.followMapper.followRelationshipToFollowRelationshipResponse(newRelationship);
+        return new FollowRelationshipResponse(newRelationship.getFollowerId(), follower.getUsername(),
+                newRelationship.getFollowTargetId(), followTarget.getUsername());
     }
 
     private Optional<UserRecord> getUserByPubUsername(String username) {
